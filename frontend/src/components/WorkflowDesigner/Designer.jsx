@@ -36,8 +36,8 @@ const nodeTypes = {
     </div>
   ),
   condition: ({ data }) => (
-    <div className="px-4 py-2 shadow-md rounded-md bg-purple-100 border-2 border-purple-400" style={{ transform: 'rotate(45deg)' }}>
-      <div style={{ transform: 'rotate(-45deg)' }}>
+    <div className="px-4 py-2 shadow-md rounded-md bg-purple-100 border-2 border-purple-400 rotate-45">
+      <div className="-rotate-45">
         <div className="font-bold text-purple-700 text-center">◆</div>
         <div className="text-xs text-gray-700 text-center">{data.label}</div>
       </div>
