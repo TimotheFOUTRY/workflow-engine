@@ -33,9 +33,19 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  service: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'User department or service'
+  },
   role: {
     type: DataTypes.ENUM('admin', 'manager', 'user'),
     defaultValue: 'user'
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    defaultValue: 'pending',
+    comment: 'Account approval status'
   },
   isActive: {
     type: DataTypes.BOOLEAN,

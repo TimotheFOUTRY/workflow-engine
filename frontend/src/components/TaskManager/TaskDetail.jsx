@@ -27,14 +27,16 @@ export default function TaskDetail() {
   const loadTask = async () => {
     try {
       setLoading(true);
-      const taskData = await taskApi.getTask(id);
+      const taskResponse = await taskApi.getTask(id);
+      const taskData = taskResponse.data || taskResponse;
       setTask(taskData);
       setFormData(taskData.data || {});
 
       // Load form schema if formId is present
       if (taskData.formId) {
         try {
-          const form = await formApi.getForm(taskData.formId);
+          const formResponse = await formApi.getForm(taskData.formId);
+          const form = formResponse.data || formResponse;
           setFormSchema(form.schema);
         } catch (error) {
           console.error('Failed to load form schema:', error);

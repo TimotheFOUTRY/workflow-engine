@@ -120,7 +120,7 @@ class AdminController {
       const workflowStats = await WorkflowInstance.findAll({
         attributes: [
           'workflowId',
-          [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+          [require('sequelize').fn('COUNT', require('sequelize').col('WorkflowInstance.id')), 'count']
         ],
         where,
         group: ['workflowId'],

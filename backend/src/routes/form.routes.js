@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const formController = require('../controllers/form.controller');
+const { authenticate } = require('../middleware/auth.middleware');
+
+// All form routes require authentication
+router.use(authenticate);
 
 // Form operations
 router.post('/', formController.createForm.bind(formController));

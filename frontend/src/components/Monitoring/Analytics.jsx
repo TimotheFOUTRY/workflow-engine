@@ -37,8 +37,8 @@ export default function Analytics() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const data = await adminApi.getWorkflowAnalytics({ days: parseInt(dateRange) });
-      setAnalytics(data);
+      const response = await adminApi.getWorkflowAnalytics({ days: parseInt(dateRange) });
+      setAnalytics(response.data || response);
     } catch (error) {
       toast.error('Failed to load analytics');
       console.error(error);

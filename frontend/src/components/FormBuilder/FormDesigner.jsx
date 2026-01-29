@@ -25,7 +25,8 @@ export default function FormDesigner() {
 
   const loadForm = async () => {
     try {
-      const form = await formApi.getForm(id);
+      const response = await formApi.getForm(id);
+      const form = response.data || response;
       setFormName(form.name);
       setFormDescription(form.description || '');
       setFields(form.schema?.fields || []);

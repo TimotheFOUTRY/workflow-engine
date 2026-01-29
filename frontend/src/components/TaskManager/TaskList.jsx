@@ -32,11 +32,12 @@ export default function TaskList() {
       if (filters.priority) params.priority = filters.priority;
       if (filters.search) params.search = filters.search;
       
-      const data = await taskApi.getMyTasks(params);
-      setTasks(data.tasks || data);
+      const response = await taskApi.getMyTasks(params);
+      setTasks(response.data || []);
     } catch (error) {
       toast.error('Failed to load tasks');
       console.error(error);
+      setTasks([]);
     } finally {
       setLoading(false);
     }

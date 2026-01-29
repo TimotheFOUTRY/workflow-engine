@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   ClockIcon,
@@ -6,66 +6,41 @@ import {
   ExclamationCircleIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
-import { taskApi } from '../services/taskApi';
+import { useTaskStatistics, useMyTasks } from '../hooks/useTasks';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
 
 export default function UserDashboard() {
-  const [statistics, setStatistics] = useState({
-    pending: 0,
-    completed: 0,
-    overdue: 0,
-    total: 0,
-  });
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [stats, tasksData] = await Promise.all([
-        taskApi.getTaskStatistics(),
-        taskApi.getMyTasks({ limit: 10, status: 'pending' }),
-      ]);
-      setStatistics(stats);
-      setTasks(tasksData.tasks || tasksData);
-    } catch (error) {
-      toast.error('Failed to load dashboard data');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: statistics = {}, isLoading: statsLoading } = useTaskStatistics();
+  const { data: tasksResponse, isLoading: tasksLoading } = useMyTasks({ limit: 10, status: 'pending' });
+  
+  const tasks = tasksResponse?.data || [];
+  const loading = statsLoading || tasksLoading;
 
   const stats = [
     {
       name: 'Pending Tasks',
-      value: statistics.pending,
+      value: statistics?.data?.pending || statistics?.pending || 0,
       icon: ClockIcon,
       color: 'text-yellow-600',
       bg: 'bg-yellow-100',
     },
     {
       name: 'Completed',
-      value: statistics.completed,
+      value: statistics?.data?.completed || statistics?.completed || 0,
       icon: CheckCircleIcon,
       color: 'text-green-600',
       bg: 'bg-green-100',
     },
     {
       name: 'Overdue',
-      value: statistics.overdue,
+      value: statistics?.data?.overdue || statistics?.overdue || 0,
       icon: ExclamationCircleIcon,
       color: 'text-red-600',
       bg: 'bg-red-100',
     },
     {
       name: 'Total Tasks',
-      value: statistics.total,
+      value: statistics?.data?.total || statistics?.total || 0,
       icon: ChartBarIcon,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
@@ -101,27 +76,27 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">My Dashboard</h2>
-        <p className="mt-1 text-sm text-gray-500">Overview of your tasks and activities</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Dashboard</h2>
+        <p className="mt-1 text-sm text-gray-500">Welcome back, {user?.firstName || 'User'}!</p>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+              <div className="p-3 sm:p-5">
                 <div className="flex items-center">
-                  <div className={`flex-shrink-0 ${stat.bg} rounded-md p-3`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className={`flex-shrink-0 ${stat.bg} rounded-md p-2 sm:p-3`}>
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                   </div>
-                  <div className="ml-5 w-0 flex-1">
+                  <div className="ml-3 sm:ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                      <dd className="text-2xl font-semibold text-gray-900">{stat.value}</dd>
+                      <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
+                      <dd className="text-lg sm:text-2xl font-semibold text-gray-900">{stat.value}</dd>
                     </dl>
                   </div>
                 </div>
@@ -133,12 +108,12 @@ export default function UserDashboard() {
 
       {/* Recent Tasks */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
+        <div className="px-4 py-4 sm:py-5 border-b border-gray-200 sm:px-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
+            <h3 className="text-base sm:text-lg font-medium leading-6 text-gray-900">Recent Tasks</h3>
             <Link
               to="/tasks"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View all
             </Link>
@@ -153,19 +128,20 @@ export default function UserDashboard() {
           ) : (
             tasks.map((task) => (
               <div key={task._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/tasks/${task._id}`}
-                      className="text-sm font-medium text-gray-900 hover:text-indigo-600"
+                      className="text-sm font-medium text-gray-900 hover:text-indigo-600 block"
                     >
                       {task.name}
                     </Link>
-                    <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
-                      <span>{task.workflowName}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                      <span className="truncate max-w-[150px] sm:max-w-none">{task.workflowName}</span>
                       <span className="flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4" />
-                        {format(new Date(task.createdAt), 'MMM d, yyyy')}
+                        <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">{format(new Date(task.createdAt), 'MMM d, yyyy')}</span>
+                        <span className="sm:hidden">{format(new Date(task.createdAt), 'MMM d')}</span>
                       </span>
                       {task.dueDate && (
                         <span className={new Date(task.dueDate) < new Date() ? 'text-red-600' : ''}>
@@ -174,16 +150,16 @@ export default function UserDashboard() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
+                  <div className="flex items-center gap-2 sm:gap-3 self-start sm:self-center">
+                    <span className={`text-xs sm:text-sm font-medium ${getPriorityColor(task.priority)} capitalize`}>
                       {task.priority}
                     </span>
                     <span
-                      className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold leading-5 ${getStatusColor(
                         task.status
                       )}`}
                     >
-                      {task.status}
+                      {task.status.replace('_', ' ')}
                     </span>
                   </div>
                 </div>

@@ -3,10 +3,15 @@ const cors = require('cors');
 const winston = require('winston');
 
 // Import routes
+const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const workflowRoutes = require('./routes/workflow.routes');
 const taskRoutes = require('./routes/task.routes');
 const formRoutes = require('./routes/form.routes');
 const adminRoutes = require('./routes/admin.routes');
+
+// Import middleware
+const { optionalAuth } = require('./middleware/auth.middleware');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -27,10 +32,16 @@ const logger = winston.createLogger({
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
-}));
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    : true, // En dev, accepte toutes les origines
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -41,18 +52,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Simple auth middleware (mock - replace with real JWT auth)
-app.use((req, res, next) => {
-  // For demo purposes, add a mock user
-  // In production, validate JWT token here
-  const authHeader = req.headers.authorization;
-  if (authHeader) {
-    req.user = { id: 'demo-user-id', role: 'admin' };
-  }
-  next();
-});
-
-// Health check
+// Health check (public)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy',
@@ -61,7 +61,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Public routes (no authentication required)
+app.use('/api/auth', authRoutes);
+
+// Protected routes (require authentication via middleware in routes)
+app.use('/api/users', userRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/forms', formRoutes);

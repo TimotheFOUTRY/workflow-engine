@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer toutes les dépendances (y compris dev)
+RUN npm install
+
+# Copier le reste du code (sera monté en volume en dev)
+COPY . .
+
+# Exposer le port
+EXPOSE 3001
+
+# Nodemon va watcher les changements
+CMD ["npm", "run", "dev"]

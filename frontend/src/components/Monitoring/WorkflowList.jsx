@@ -26,11 +26,12 @@ export default function WorkflowList() {
     try {
       setLoading(true);
       const params = search ? { search } : {};
-      const data = await workflowApi.getAllWorkflows(params);
-      setWorkflows(data.workflows || data);
+      const response = await workflowApi.getAllWorkflows(params);
+      setWorkflows(response.data || []);
     } catch (error) {
       toast.error('Failed to load workflows');
       console.error(error);
+      setWorkflows([]);
     } finally {
       setLoading(false);
     }

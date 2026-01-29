@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer toutes les dépendances
+RUN npm install
+
+# Copier le reste du code (sera monté en volume en dev)
+COPY . .
+
+# Exposer le port Vite
+EXPOSE 3000
+
+# Vite dev server avec HMR
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -51,8 +51,8 @@ export default function AdminDashboard() {
         adminApi.getSystemStatistics(),
         adminApi.getWorkflowAnalytics(),
       ]);
-      setStatistics(stats);
-      setAnalytics(analyticsData);
+      setStatistics(stats.data || stats);
+      setAnalytics(analyticsData.data || analyticsData);
     } catch (error) {
       toast.error('Failed to load admin dashboard');
       console.error(error);
@@ -101,27 +101,27 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p className="mt-1 text-sm text-gray-500">System-wide analytics and statistics</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+        <p className="mt-1 text-xs sm:text-sm text-gray-500">System-wide analytics and statistics</p>
       </div>
 
       {/* System Statistics */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
         {systemStats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+              <div className="p-3 sm:p-5">
                 <div className="flex items-center">
-                  <div className={`flex-shrink-0 ${stat.bg} rounded-md p-3`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className={`flex-shrink-0 ${stat.bg} rounded-md p-2 sm:p-3`}>
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                   </div>
-                  <div className="ml-5 w-0 flex-1">
+                  <div className="ml-3 sm:ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                      <dd className="text-2xl font-semibold text-gray-900">{stat.value}</dd>
+                      <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
+                      <dd className="text-lg sm:text-2xl font-semibold text-gray-900">{stat.value}</dd>
                     </dl>
                   </div>
                 </div>
@@ -132,11 +132,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Workflows by Status */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Workflow Instances by Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Workflow Instances by Status</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
                 data={analytics.workflowsByStatus}
@@ -158,9 +158,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tasks by Status */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Tasks by Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Tasks by Status</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <BarChart data={analytics.tasksByStatus}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="status" />
@@ -174,11 +174,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Completion Trend */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Completion Trend (Last 30 Days)</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Completion Trend (Last 30 Days)</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <LineChart data={analytics.completionTrend}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -192,9 +192,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Performance Metrics */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Average Completion Time by Workflow</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Average Completion Time</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <BarChart data={analytics.performanceMetrics} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" label={{ value: 'Hours', position: 'insideBottom' }} />
@@ -208,11 +208,11 @@ export default function AdminDashboard() {
 
       {/* Recent Activity Table */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+        <div className="px-4 py-4 sm:py-5 border-b border-gray-200">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Activity</h3>
         </div>
-        <div className="px-4 py-4 sm:px-6">
-          <p className="text-sm text-gray-500">
+        <div className="px-4 py-3 sm:py-4">
+          <p className="text-xs sm:text-sm text-gray-500">
             Visit <a href="/admin/instances" className="text-indigo-600 hover:text-indigo-500">Instance Monitor</a> for detailed activity logs
           </p>
         </div>

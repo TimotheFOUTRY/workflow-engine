@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   HomeIcon,
   Squares2X2Icon,
   ClipboardDocumentListIcon,
   ChartBarIcon,
-  Cog6ToothIcon,
+  UsersIcon,
+  ClockIcon,
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
@@ -13,22 +15,24 @@ import {
 } from '@heroicons/react/24/outline';
 import { Toaster } from 'react-hot-toast';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Workflows', href: '/workflows', icon: Squares2X2Icon },
-  { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
-  { name: 'Admin', href: '/admin', icon: ChartBarIcon },
-];
-
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User","role":"user"}');
+  const { user, logout, isAdmin } = useAuth();
+
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    { name: 'Workflows', href: '/workflows', icon: Squares2X2Icon },
+    { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    ...(isAdmin() ? [
+      { name: 'Admin', href: '/admin', icon: ChartBarIcon },
+      { name: 'Utilisateurs', href: '/admin/users', icon: UsersIcon },
+      { name: 'En attente', href: '/admin/users/pending', icon: ClockIcon },
+    ] : []),
+  ];
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    logout();
   };
 
   return (
@@ -118,20 +122,39 @@ export default function Layout({ children }) {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-700">{user.name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+              <div className="relative group">
+                <button className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100">
+                  <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-gray-700">
+                      {user?.firstName && user?.lastName 
+                        ? `${user.firstName} ${user.lastName}` 
+                        : user?.username || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+                  </div>
+                </button>
+                
+                {/* Dropdown menu */}
+                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="py-1">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <UserCircleIcon className="h-4 w-4" />
+                      Mon profil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                      Déconnexion
+                    </button>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-gray-500"
-                title="Logout"
-              >
-                <ArrowRightOnRectangleIcon className="h-6 w-6" />
-              </button>
             </div>
           </div>
         </header>
