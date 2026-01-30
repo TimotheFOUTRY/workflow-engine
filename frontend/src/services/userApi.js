@@ -7,6 +7,7 @@ export const userApi = {
   createUser: (userData) => api.post('/users', userData),
   updateUser: (id, userData) => api.put(`/users/${id}`, userData),
   deleteUser: (id) => api.delete(`/users/${id}`),
+  resetPassword: (id) => api.post(`/users/${id}/reset-password`),
   
   // User approval
   getPendingUsers: () => api.get('/users/pending'),

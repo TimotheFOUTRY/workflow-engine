@@ -34,10 +34,27 @@ exports.getAssignees = async (req, res) => {
           name: { [Op.iLike]: `%${search}%` }
         } : {})
       },
-      attributes: ['id', 'name', 'description', 'isPublic', 'memberIds'],
+      attributes: ['id', 'name', 'description', 'isPublic', 'members'],
       limit: Math.ceil(limit / 2),
       order: [['name', 'ASC']]
     });
+
+    // Fetch member details for groups
+    const groupsWithMembers = await Promise.all(groups.map(async (group) => {
+      const memberIds = group.members || [];
+      const members = await User.findAll({
+        where: { id: memberIds },
+        attributes: ['id', 'username', 'email']
+      });
+      return {
+        ...group.toJSON(),
+        memberDetails: members.map(m => ({
+          id: m.id,
+          username: m.username,
+          email: m.email
+        }))
+      };
+    }));
 
     // Format results
     const userResults = users.map(user => ({
@@ -48,13 +65,14 @@ exports.getAssignees = async (req, res) => {
       value: user.email
     }));
 
-    const groupResults = groups.map(group => ({
+    const groupResults = groupsWithMembers.map(group => ({
       id: `group:${group.id}`,
       type: 'group',
       label: group.name,
       description: group.description,
-      memberCount: group.memberIds?.length || 0,
-      memberIds: group.memberIds,
+      memberCount: group.members?.length || 0,
+      memberIds: group.members,
+      members: group.memberDetails,
       isPublic: group.isPublic,
       value: `group:${group.id}`
     }));

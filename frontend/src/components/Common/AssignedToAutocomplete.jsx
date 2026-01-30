@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDownIcon, UserIcon, UsersIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronRightIcon, UserIcon, UsersIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAssignees } from '../../hooks/useAssignees';
 
 export default function AssignedToAutocomplete({ value = '', onChange, placeholder = 'Sélectionner un utilisateur ou un groupe' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
   const dropdownRef = useRef(null);
   
   const { data: assigneesData, isLoading } = useAssignees(search, true);
@@ -73,6 +74,17 @@ export default function AssignedToAutocomplete({ value = '', onChange, placehold
     onChange(newItems.length > 0 ? JSON.stringify(newItems) : '');
   };
 
+  const toggleGroupExpand = (groupId, event) => {
+    event.stopPropagation();
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Selected items */}
@@ -129,32 +141,74 @@ export default function AssignedToAutocomplete({ value = '', onChange, placehold
             <div className="px-3 py-2 text-sm text-gray-500">Aucun résultat</div>
           ) : (
             assignees.map((assignee) => (
-              <button
-                key={assignee.id}
-                type="button"
-                onClick={() => handleSelect(assignee)}
-                className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-              >
+              <div key={assignee.id}>
                 {assignee.type === 'group' ? (
-                  <>
-                    <UsersIcon className="h-4 w-4 text-indigo-600" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{assignee.label}</div>
-                      <div className="text-xs text-gray-500">
-                        {assignee.memberCount} membre{assignee.memberCount > 1 ? 's' : ''} • {assignee.isPublic ? 'Public' : 'Privé'}
+                  <div className="flex items-center hover:bg-gray-100">
+                    <button
+                      type="button"
+                      onClick={(e) => toggleGroupExpand(assignee.id, e)}
+                      className="p-2 hover:bg-gray-200 rounded"
+                    >
+                      {expandedGroups.has(assignee.id) ? (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronRightIcon className="h-3 w-3" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(assignee)}
+                      className="flex-1 px-2 py-2 text-left flex items-center gap-2"
+                    >
+                      <UsersIcon className="h-4 w-4 text-indigo-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{assignee.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {assignee.memberCount} membre{assignee.memberCount > 1 ? 's' : ''} • {assignee.isPublic ? 'Public' : 'Privé'}
+                        </div>
                       </div>
-                    </div>
-                  </>
+                    </button>
+                  </div>
                 ) : (
-                  <>
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(assignee)}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  >
                     <UserIcon className="h-4 w-4 text-blue-600" />
                     <div className="flex-1">
                       <div className="text-sm font-medium">{assignee.label}</div>
                       <div className="text-xs text-gray-500">{assignee.email}</div>
                     </div>
-                  </>
+                  </button>
                 )}
-              </button>
+                
+                {/* Expanded group members */}
+                {assignee.type === 'group' && expandedGroups.has(assignee.id) && assignee.members && (
+                  <div className="ml-8 border-l-2 border-gray-200">
+                    {assignee.members.map((member) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => handleSelect({
+                          id: `user:${member.id}`,
+                          type: 'user',
+                          label: member.username,
+                          email: member.email,
+                          value: member.email
+                        })}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <UserIcon className="h-3 w-3 text-blue-600" />
+                        <div className="flex-1">
+                          <div className="text-xs font-medium">{member.username}</div>
+                          <div className="text-xs text-gray-400">{member.email}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))
           )}
         </div>

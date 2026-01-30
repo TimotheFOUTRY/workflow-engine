@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useUser, useUpdateUser } from '../../hooks/useUsers';
+import { useUser, useUpdateUser, useDeleteUser, useResetPassword } from '../../hooks/useUsers';
 import {
   ArrowLeftIcon,
   UserIcon,
@@ -10,6 +10,9 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
+  PencilIcon,
+  KeyIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
@@ -18,6 +21,9 @@ export default function UserDetails() {
   const navigate = useNavigate();
   const { data: userResponse, isLoading } = useUser(id);
   const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+  const resetPasswordMutation = useResetPassword();
+  const [showTempPassword, setShowTempPassword] = useState(null);
 
   const user = userResponse?.data;
 
@@ -30,6 +36,30 @@ export default function UserDetails() {
   const handleToggleActive = async () => {
     if (confirm(`Êtes-vous sûr de vouloir ${user.isActive ? 'désactiver' : 'activer'} cet utilisateur ?`)) {
       await updateUserMutation.mutateAsync({ userId: id, data: { isActive: !user.isActive } });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe de cet utilisateur ?\n\nUn mot de passe temporaire sera généré et affiché.')) {
+      try {
+        const result = await resetPasswordMutation.mutateAsync(id);
+        if (result?.temporaryPassword) {
+          setShowTempPassword(result.temporaryPassword);
+        }
+      } catch (error) {
+        console.error('Reset password error:', error);
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.email} ?\n\nCette action est irréversible.`)) {
+      try {
+        await deleteUserMutation.mutateAsync(id);
+        navigate('/admin/users');
+      } catch (error) {
+        console.error('Delete user error:', error);
+      }
     }
   };
 
@@ -91,53 +121,78 @@ export default function UserDetails() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate('/admin/users')}
-            className="p-2 hover:bg-gray-100 rounded-md"
+            className="p-2 hover:bg-gray-100 rounded-md flex-shrink-0"
           >
             <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
           </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Détails de l'utilisateur</h2>
-            <p className="text-sm text-gray-500">{user.email}</p>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Détails de l'utilisateur</h2>
+            <p className="text-sm text-gray-500 truncate">{user.email}</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           {user.status === 'pending' && (
             <>
               <button
                 onClick={() => handleStatusChange('approved')}
                 disabled={updateUserMutation.isLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"
+                className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-1 sm:gap-2 disabled:opacity-50 text-sm whitespace-nowrap"
               >
                 <CheckCircleIcon className="h-5 w-5" />
-                Approuver
+                <span className="hidden sm:inline">Approuver</span>
               </button>
               <button
                 onClick={() => handleStatusChange('rejected')}
                 disabled={updateUserMutation.isLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+                className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-1 sm:gap-2 disabled:opacity-50 text-sm whitespace-nowrap"
               >
                 <XCircleIcon className="h-5 w-5" />
-                Rejeter
+                <span className="hidden sm:inline">Rejeter</span>
               </button>
             </>
           )}
           <button
             onClick={handleToggleActive}
             disabled={updateUserMutation.isLoading}
-            className={`px-4 py-2 rounded-md flex items-center gap-2 disabled:opacity-50 ${
+            className={`px-3 sm:px-4 py-2 rounded-md flex items-center gap-1 sm:gap-2 disabled:opacity-50 text-sm whitespace-nowrap ${
               user.isActive
                 ? 'bg-yellow-600 text-white hover:bg-yellow-700'
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
           >
-            {user.isActive ? 'Désactiver' : 'Activer'}
+            <span className="hidden sm:inline">{user.isActive ? 'Désactiver' : 'Activer'}</span>
+            <span className="sm:hidden">{user.isActive ? 'Off' : 'On'}</span>
           </button>
         </div>
       </div>
+
+      {/* Temporary Password Display */}
+      {showTempPassword && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex items-start">
+            <KeyIcon className="h-5 w-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">Mot de passe temporaire généré</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p className="font-mono bg-white px-3 py-2 rounded border border-yellow-200 inline-block">
+                  {showTempPassword}
+                </p>
+                <p className="mt-2 text-xs">⚠️ Notez ce mot de passe, il ne sera plus affiché.</p>
+              </div>
+              <button
+                onClick={() => setShowTempPassword(null)}
+                className="mt-3 text-xs text-yellow-800 hover:text-yellow-900 underline"
+              >
+                Masquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profile Card */}
       <div className="bg-white shadow-sm rounded-lg border overflow-hidden">
@@ -264,35 +319,31 @@ export default function UserDetails() {
       </div>
 
       {/* Actions */}
-      <div className="bg-white shadow-sm rounded-lg border p-6">
+      <div className="bg-white shadow-sm rounded-lg border p-4 sm:p-6">
         <h4 className="text-lg font-semibold text-gray-900 mb-4">Actions</h4>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
           <Link
             to={`/admin/users/${id}/edit`}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="px-4 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2 text-sm font-medium"
           >
+            <PencilIcon className="h-4 w-4" />
             Modifier l'utilisateur
           </Link>
           <button
-            onClick={() => {
-              if (confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe ?')) {
-                // TODO: Implémenter la réinitialisation du mot de passe
-              }
-            }}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+            onClick={handleResetPassword}
+            disabled={resetPasswordMutation.isLoading}
+            className="px-4 py-2.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
           >
-            Réinitialiser le mot de passe
+            <KeyIcon className="h-4 w-4" />
+            {resetPasswordMutation.isLoading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
           </button>
           <button
-            onClick={() => {
-              if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-                // TODO: Implémenter la suppression
-                navigate('/admin/users');
-              }
-            }}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            onClick={handleDelete}
+            disabled={deleteUserMutation.isLoading}
+            className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
           >
-            Supprimer l'utilisateur
+            <TrashIcon className="h-4 w-4" />
+            {deleteUserMutation.isLoading ? 'Suppression...' : "Supprimer l'utilisateur"}
           </button>
         </div>
       </div>

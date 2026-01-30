@@ -31,6 +31,26 @@ const Workflow = sequelize.define('Workflow', {
   createdBy: {
     type: DataTypes.UUID,
     allowNull: true
+  },
+  allowedUsers: {
+    type: DataTypes.ARRAY(DataTypes.UUID),
+    defaultValue: [],
+    allowNull: true,
+    field: 'allowed_users',
+    comment: 'Array of user IDs allowed to view and start this workflow'
+  },
+  allowedGroups: {
+    type: DataTypes.ARRAY(DataTypes.UUID),
+    defaultValue: [],
+    allowNull: true,
+    field: 'allowed_groups',
+    comment: 'Array of group IDs allowed to view and start this workflow'
+  },
+  isPublic: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_public',
+    comment: 'If true, all users can view and start this workflow'
   }
 }, {
   tableName: 'workflows',

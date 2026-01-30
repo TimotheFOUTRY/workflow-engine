@@ -1,6 +1,7 @@
 const winston = require('winston');
-const { Workflow, WorkflowInstance } = require('../models');
+const { Workflow, WorkflowInstance, User, Group } = require('../models');
 const workflowEngine = require('../services/workflowEngine');
+const { Op } = require('sequelize');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -268,6 +269,212 @@ class WorkflowController {
       });
     } catch (error) {
       logger.error('Error cancelling workflow instance:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get accessible workflows for current user (for starting workflows)
+   */
+  async getAccessibleWorkflows(req, res) {
+    try {
+      const userId = req.user.id;
+      const userRole = req.user.role;
+      
+      let where = {
+        isActive: true
+      };
+
+      // Admin can see all workflows
+      if (userRole === 'admin') {
+        // Admin sees all active workflows
+        const workflows = await Workflow.findAll({
+          where,
+          order: [['name', 'ASC']],
+          attributes: ['id', 'name', 'description', 'isActive', 'isPublic', 'createdAt']
+        });
+
+        return res.json({
+          success: true,
+          data: workflows
+        });
+      }
+
+      // For non-admin users, get user's groups
+      const user = await User.findByPk(userId, {
+        include: [{
+          model: Group,
+          as: 'groups',
+          through: { attributes: [] }
+        }]
+      });
+      
+      const userGroupIds = user?.groups?.map(g => g.id) || [];
+
+      // Build OR conditions
+      const orConditions = [
+        { isPublic: true },              // Public workflows
+        { createdBy: userId },            // Workflows created by user
+        {
+          allowedUsers: {
+            [Op.contains]: [userId]
+          }
+        }
+      ];
+      
+      // Add group condition if user has groups
+      if (userGroupIds.length > 0) {
+        orConditions.push({
+          allowedGroups: {
+            [Op.overlap]: userGroupIds
+          }
+        });
+      }
+
+      where[Op.or] = orConditions;
+
+      const workflows = await Workflow.findAll({
+        where,
+        order: [['name', 'ASC']],
+        attributes: ['id', 'name', 'description', 'isActive', 'isPublic', 'createdAt']
+      });
+
+      res.json({
+        success: true,
+        data: workflows
+      });
+    } catch (error) {
+      logger.error('Error getting accessible workflows:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Update workflow permissions
+   */
+  async updateWorkflowPermissions(req, res) {
+    try {
+      const { id } = req.params;
+      const { allowedUsers, allowedGroups, isPublic } = req.body;
+      
+      const workflow = await Workflow.findByPk(id);
+      
+      if (!workflow) {
+        return res.status(404).json({
+          success: false,
+          error: 'Workflow not found'
+        });
+      }
+
+      // Check if user has permission to update (creator or admin)
+      if (req.user.role !== 'admin' && workflow.createdBy !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'You do not have permission to update this workflow'
+        });
+      }
+
+      await workflow.update({
+        allowedUsers: allowedUsers || [],
+        allowedGroups: allowedGroups || [],
+        isPublic: isPublic !== undefined ? isPublic : workflow.isPublic
+      });
+
+      res.json({
+        success: true,
+        data: workflow
+      });
+    } catch (error) {
+      logger.error('Error updating workflow permissions:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Check if user can access workflow
+   */
+  async checkWorkflowAccess(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const userRole = req.user.role;
+      
+      const workflow = await Workflow.findByPk(id);
+      
+      if (!workflow) {
+        return res.status(404).json({
+          success: false,
+          error: 'Workflow not found'
+        });
+      }
+
+      // Admin always has access
+      if (userRole === 'admin') {
+        return res.json({
+          success: true,
+          data: { hasAccess: true, reason: 'admin' }
+        });
+      }
+
+      // Public workflow
+      if (workflow.isPublic) {
+        return res.json({
+          success: true,
+          data: { hasAccess: true, reason: 'public' }
+        });
+      }
+
+      // Creator
+      if (workflow.createdBy === userId) {
+        return res.json({
+          success: true,
+          data: { hasAccess: true, reason: 'creator' }
+        });
+      }
+
+      // Explicitly allowed user
+      if (workflow.allowedUsers && workflow.allowedUsers.includes(userId)) {
+        return res.json({
+          success: true,
+          data: { hasAccess: true, reason: 'allowed_user' }
+        });
+      }
+
+      // Check group membership
+      const user = await User.findByPk(userId, {
+        include: [{
+          model: require('../models').Group,
+          as: 'groups',
+          through: { attributes: [] }
+        }]
+      });
+      
+      const userGroupIds = user?.groups?.map(g => g.id) || [];
+      const hasGroupAccess = workflow.allowedGroups && 
+        workflow.allowedGroups.some(groupId => userGroupIds.includes(groupId));
+
+      if (hasGroupAccess) {
+        return res.json({
+          success: true,
+          data: { hasAccess: true, reason: 'allowed_group' }
+        });
+      }
+
+      res.json({
+        success: true,
+        data: { hasAccess: false, reason: 'no_permission' }
+      });
+    } catch (error) {
+      logger.error('Error checking workflow access:', error);
       res.status(500).json({
         success: false,
         error: error.message

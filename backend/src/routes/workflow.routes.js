@@ -9,9 +9,14 @@ router.use(authenticate);
 // Workflow CRUD
 router.post('/', workflowController.createWorkflow.bind(workflowController));
 router.get('/', workflowController.getAllWorkflows.bind(workflowController));
+router.get('/accessible', workflowController.getAccessibleWorkflows.bind(workflowController));
 router.get('/:id', workflowController.getWorkflow.bind(workflowController));
 router.put('/:id', workflowController.updateWorkflow.bind(workflowController));
 router.delete('/:id', workflowController.deleteWorkflow.bind(workflowController));
+
+// Workflow permissions
+router.put('/:id/permissions', workflowController.updateWorkflowPermissions.bind(workflowController));
+router.get('/:id/check-access', workflowController.checkWorkflowAccess.bind(workflowController));
 
 // Workflow instances
 router.post('/:id/start', workflowController.startWorkflowInstance.bind(workflowController));

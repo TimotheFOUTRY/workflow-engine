@@ -382,6 +382,55 @@ class UserController {
   }
 
   /**
+   * Reset user password (admin only)
+   */
+  async resetPassword(req, res) {
+    try {
+      const { id } = req.params;
+      const bcrypt = require('bcryptjs');
+
+      // Prevent resetting your own password through this endpoint
+      if (id === req.user.id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot reset your own password through this endpoint'
+        });
+      }
+
+      const user = await User.findByPk(id);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      // Generate temporary password
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      await user.update({ password: hashedPassword });
+
+      logger.info(`Password reset for user: ${user.email}`);
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully',
+        data: {
+          temporaryPassword: tempPassword
+        }
+      });
+    } catch (error) {
+      logger.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get user statistics (admin only)
    */
   async getUserStatistics(req, res) {

@@ -22,6 +22,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import Analytics from './components/Monitoring/Analytics'
 import UserManagement from './pages/Admin/UserManagement'
 import UserDetails from './pages/Admin/UserDetails'
+import EditUser from './pages/Admin/EditUser'
 import CreateUser from './pages/Admin/CreateUser'
 import PendingUsers from './pages/Admin/PendingUsers'
 
@@ -29,10 +30,17 @@ import PendingUsers from './pages/Admin/PendingUsers'
 import WorkflowDesigner from './components/WorkflowDesigner/Designer'
 import FormBuilder from './components/FormBuilder/FormDesigner'
 import WorkflowList from './components/Monitoring/WorkflowList'
+import WorkflowDashboard from './pages/WorkflowDashboard'
 import InstanceMonitor from './components/Monitoring/InstanceMonitor'
+import StartWorkflowPage from './pages/StartWorkflowPage'
+import WorkflowInstance from './pages/WorkflowInstance'
+import TaskComplete from './pages/TaskComplete'
 
 // Groups page
 import GroupsPage from './pages/GroupsPage'
+
+// Notifications page
+import NotificationsPage from './pages/NotificationsPage'
 
 function App() {
   return (
@@ -57,12 +65,19 @@ function App() {
                   {/* Tasks */}
                   <Route path="/tasks" element={<TaskList />} />
                   <Route path="/tasks/:id" element={<TaskDetail />} />
+                  <Route path="/tasks/:taskId/complete" element={<TaskComplete />} />
+                  
+                  {/* Notifications */}
+                  <Route path="/notifications" element={<NotificationsPage />} />
                   
                   {/* Workflows */}
                   <Route path="/workflows" element={<WorkflowList />} />
+                  <Route path="/workflows/list" element={<WorkflowList />} />
+                  <Route path="/workflows/start" element={<StartWorkflowPage />} />
                   <Route path="/workflows/new" element={<WorkflowDesigner />} />
                   <Route path="/workflows/:id/edit" element={<WorkflowDesigner />} />
                   <Route path="/workflows/:id/instances" element={<InstanceMonitor />} />
+                  <Route path="/workflows/:workflowId/instances/:instanceId" element={<WorkflowInstance />} />
                   
                   {/* Forms */}
                   <Route path="/forms/new" element={<FormBuilder />} />
@@ -93,6 +108,14 @@ function App() {
                     element={
                       <ProtectedRoute requiredRole="admin">
                         <UserManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/users/:id/edit"
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <EditUser />
                       </ProtectedRoute>
                     }
                   />

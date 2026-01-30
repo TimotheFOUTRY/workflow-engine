@@ -5,6 +5,8 @@ const Form = require('./form.model');
 const User = require('./user.model');
 const WorkflowHistory = require('./workflowHistory.model');
 const Group = require('./group.model');
+const Notification = require('./notification.model');
+const WorkflowSubscription = require('./workflowSubscription.model');
 
 // Define relationships
 
@@ -58,14 +60,46 @@ Task.belongsTo(Form, {
   as: 'form'
 });
 
-// User -> WorkflowHistory (one-to-many)
-User.hasMany(WorkflowHistory, {
+// User -> Notification (one-to-many)
+User.hasMany(Notification, {
   foreignKey: 'userId',
-  as: 'history'
+  as: 'notifications'
 });
-WorkflowHistory.belongsTo(User, {
+Notification.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user'
+});
+
+// User <-> Group (many-to-many)
+User.belongsToMany(Group, {
+  through: 'group_members',
+  foreignKey: 'userId',
+  otherKey: 'groupId',
+  as: 'groups'
+});
+Group.belongsToMany(User, {
+  through: 'group_members',
+  foreignKey: 'groupId',
+  otherKey: 'userId',
+  as: 'users'
+});
+
+// WorkflowSubscription relationships
+WorkflowSubscription.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+WorkflowSubscription.belongsTo(WorkflowInstance, {
+  foreignKey: 'instanceId',
+  as: 'instance'
+});
+User.hasMany(WorkflowSubscription, {
+  foreignKey: 'userId',
+  as: 'subscriptions'
+});
+WorkflowInstance.hasMany(WorkflowSubscription, {
+  foreignKey: 'instanceId',
+  as: 'subscriptions'
 });
 
 module.exports = {
@@ -75,5 +109,7 @@ module.exports = {
   Form,
   User,
   WorkflowHistory,
-  Group
+  Group,
+  Notification,
+  WorkflowSubscription
 };

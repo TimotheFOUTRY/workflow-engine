@@ -104,6 +104,28 @@ export const useRejectUser = () => {
   });
 };
 
+export const useResetPassword = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: userApi.resetPassword,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      // Show temporary password in toast
+      if (data?.temporaryPassword) {
+        toast.success(`Mot de passe temporaire: ${data.temporaryPassword}`, {
+          duration: 10000,
+        });
+      } else {
+        toast.success('Mot de passe réinitialisé');
+      }
+    },
+    onError: (error) => {
+      toast.error(error.error || 'Échec de la réinitialisation');
+    },
+  });
+};
+
 export const useUserStatistics = () => {
   return useQuery({
     queryKey: ['users', 'statistics'],

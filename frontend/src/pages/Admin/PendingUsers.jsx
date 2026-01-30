@@ -98,7 +98,7 @@ export default function PendingUsers() {
                   <div className="ml-6 flex items-center space-x-3">
                     <button
                       onClick={() => handleApprove(user.id)}
-                      disabled={actionLoading === user.id}
+                      disabled={approveUserMutation.isLoading || rejectUserMutation.isLoading}
                       className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <CheckCircleIcon className="h-4 w-4 mr-1" />
@@ -106,7 +106,7 @@ export default function PendingUsers() {
                     </button>
                     <button
                       onClick={() => handleReject(user.id)}
-                      disabled={actionLoading === user.id}
+                      disabled={approveUserMutation.isLoading || rejectUserMutation.isLoading}
                       className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <XCircleIcon className="h-4 w-4 mr-1" />

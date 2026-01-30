@@ -63,6 +63,13 @@ router.post('/:id/approve', authorize('admin'), userController.approveUser.bind(
 router.post('/:id/reject', authorize('admin'), userController.rejectUser.bind(userController));
 
 /**
+ * @route   POST /api/users/:id/reset-password
+ * @desc    Reset user password
+ * @access  Private (Admin)
+ */
+router.post('/:id/reset-password', authorize('admin'), userController.resetPassword.bind(userController));
+
+/**
  * @route   DELETE /api/users/:id
  * @desc    Delete user
  * @access  Private (Admin)

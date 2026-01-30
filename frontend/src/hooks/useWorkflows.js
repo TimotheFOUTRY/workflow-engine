@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 export const useWorkflows = () => {
   return useQuery({
     queryKey: ['workflows'],
-    queryFn: () => workflowApi.getAllWorkflows(),
+    queryFn: () => workflowApi.getAccessibleWorkflows(),
   });
 };
 

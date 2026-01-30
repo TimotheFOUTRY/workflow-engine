@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactFlow, {
   MiniMap,
@@ -17,6 +17,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import NodePalette from './NodePalette';
 import NodeConfig from './NodeConfig';
+import WorkflowPermissions from './WorkflowPermissions';
 import { workflowApi } from '../../services/workflowApi';
 import toast from 'react-hot-toast';
 import { 
@@ -25,7 +26,10 @@ import {
   ArrowUturnRightIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
-  Square3Stack3DIcon
+  Square3Stack3DIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
 
 // Custom Node Components with Handles
@@ -298,9 +302,23 @@ function DesignerContent() {
   const [workflowName, setWorkflowName] = useState('New Workflow');
   const [workflowDescription, setWorkflowDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState(null);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [workflowPermissions, setWorkflowPermissions] = useState({
+    isPublic: false,
+    allowedUsers: [],
+    allowedGroups: []
+  });
+  const saveTimeoutRef = useRef(null);
+  
+  // Check if ID is valid (not "undefined" string and not null/undefined)
+  const hasValidId = (id && id !== 'undefined') || currentWorkflowId;
 
   useEffect(() => {
-    if (id) {
+    if (hasValidId) {
       loadWorkflow();
     } else {
       // Initialize with a start node
@@ -311,8 +329,34 @@ function DesignerContent() {
         data: { label: 'Start', config: {} },
       };
       setNodes([startNode]);
+      setIsInitialLoad(false);
     }
   }, [id]);
+
+  // Track changes to nodes and edges for auto-save
+  useEffect(() => {
+    // ONLY auto-save if workflow already exists (has ID in URL)
+    // Don't auto-save for new workflows to prevent duplicate creation
+    if (id && id !== 'undefined' && !saving && !isInitialLoad) {
+      setHasUnsavedChanges(true);
+      
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Auto-save after 3 seconds of inactivity
+      saveTimeoutRef.current = setTimeout(() => {
+        handleSave(true);
+      }, 3000);
+    }
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [nodes, edges, workflowName, workflowDescription]);
 
   const loadWorkflow = async () => {
     try {
@@ -320,6 +364,11 @@ function DesignerContent() {
       const workflow = response.data || response;
       setWorkflowName(workflow.name);
       setWorkflowDescription(workflow.description || '');
+      setWorkflowPermissions({
+        isPublic: workflow.isPublic || false,
+        allowedUsers: workflow.allowedUsers || [],
+        allowedGroups: workflow.allowedGroups || []
+      });
       
       if (workflow.definition?.nodes) {
         setNodes(workflow.definition.nodes);
@@ -327,9 +376,15 @@ function DesignerContent() {
       if (workflow.definition?.edges) {
         setEdges(workflow.definition.edges);
       }
+      
+      // Mark as saved after loading
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
+      setIsInitialLoad(false);
     } catch (error) {
       toast.error('Failed to load workflow');
       console.error(error);
+      setIsInitialLoad(false);
     }
   };
 
@@ -415,34 +470,75 @@ function DesignerContent() {
     [setNodes]
   );
 
-  const handleSave = async () => {
+  const handleSave = async (isAutoSave = false) => {
     if (!workflowName.trim()) {
-      toast.error('Please enter a workflow name');
+      if (!isAutoSave) {
+        toast.error('Please enter a workflow name');
+      }
+      return;
+    }
+
+    // Prevent parallel saves
+    if (saving) {
       return;
     }
 
     try {
       setSaving(true);
+      
+      // Clean nodes by removing ReactFlow internal properties
+      const cleanedNodes = nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data
+      }));
+      
+      // Clean edges by removing ReactFlow internal properties
+      const cleanedEdges = edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle
+      }));
+      
       const workflowData = {
         name: workflowName,
         description: workflowDescription,
         definition: {
-          nodes,
-          edges,
+          nodes: cleanedNodes,
+          edges: cleanedEdges,
         },
         status: 'draft',
       };
 
-      if (id) {
-        await workflowApi.updateWorkflow(id, workflowData);
-        toast.success('Workflow updated successfully');
+      const effectiveId = id || currentWorkflowId;
+
+      if (effectiveId && effectiveId !== 'undefined') {
+        await workflowApi.updateWorkflow(effectiveId, workflowData);
+        if (!isAutoSave) {
+          toast.success('Workflow saved successfully');
+        }
       } else {
         const result = await workflowApi.createWorkflow(workflowData);
-        toast.success('Workflow created successfully');
-        navigate(`/workflows/${result._id}/edit`);
+        const workflowId = result.data?.id || result.id;
+        setCurrentWorkflowId(workflowId);
+        if (!isAutoSave) {
+          toast.success('Workflow created successfully');
+        }
+        // Redirect to the edit page with the new workflow ID
+        navigate(`/workflows/${workflowId}/edit`, { replace: true });
+        return; // Exit early to let the redirect handle the state update
       }
+      
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
     } catch (error) {
-      toast.error('Failed to save workflow');
+      if (!isAutoSave) {
+        const errorMessage = error?.error || error?.message || 'Failed to save workflow';
+        toast.error(errorMessage);
+      }
       console.error(error);
     } finally {
       setSaving(false);
@@ -450,7 +546,7 @@ function DesignerContent() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100vh-7rem)] -mb-6">
       {/* Header */}
       <div className="bg-white shadow-sm border-b mb-2 sm:mb-4 p-2 sm:p-4 rounded-lg flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -465,26 +561,65 @@ function DesignerContent() {
               <input
                 type="text"
                 value={workflowName}
-                onChange={(e) => setWorkflowName(e.target.value)}
+                onChange={(e) => {
+                  setWorkflowName(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
                 className="text-base sm:text-lg font-semibold w-full border-0 border-b-2 border-transparent hover:border-gray-300 focus:border-indigo-500 focus:ring-0 px-1 sm:px-2 py-1"
                 placeholder="Workflow Name"
               />
               <input
                 type="text"
                 value={workflowDescription}
-                onChange={(e) => setWorkflowDescription(e.target.value)}
+                onChange={(e) => {
+                  setWorkflowDescription(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
                 className="text-xs sm:text-sm text-gray-500 w-full border-0 border-b-2 border-transparent hover:border-gray-300 focus:border-indigo-500 focus:ring-0 px-1 sm:px-2 py-1 mt-1"
                 placeholder="Description"
               />
             </div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Save Status Indicator */}
+            {hasValidId && (
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                {saving ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : hasUnsavedChanges ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 text-amber-500" />
+                    <span>Unsaved changes</span>
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
+                  </>
+                ) : null}
+              </div>
+            )}
+            {hasValidId && (
+              <button
+                onClick={() => setShowPermissionsModal(true)}
+                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm whitespace-nowrap flex items-center gap-2"
+              >
+                <LockClosedIcon className="h-4 w-4" />
+                Permissions
+              </button>
+            )}
+            <button
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+```
         </div>
       </div>
 
@@ -599,6 +734,51 @@ function DesignerContent() {
           </>
         )}
       </div>
+
+      {/* Permissions Modal */}
+      {showPermissionsModal && hasValidId && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Permissions du Workflow</h2>
+              <button
+                onClick={() => setShowPermissionsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <WorkflowPermissions
+                workflowId={id || currentWorkflowId}
+                currentPermissions={workflowPermissions}
+                onUpdate={async (newPermissions) => {
+                  try {
+                    setWorkflowPermissions(newPermissions);
+                    await workflowApi.updateWorkflowPermissions(id || currentWorkflowId, newPermissions);
+                    toast.success('Permissions mises à jour');
+                  } catch (error) {
+                    toast.error('Erreur lors de la mise à jour des permissions');
+                    console.error(error);
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4">
+              <button
+                onClick={() => setShowPermissionsModal(false)}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

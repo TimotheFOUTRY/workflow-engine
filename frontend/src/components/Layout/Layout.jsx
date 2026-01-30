@@ -12,8 +12,11 @@ import {
   XMarkIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
+  BellIcon,
+  RocketLaunchIcon,
 } from '@heroicons/react/24/outline';
 import { Toaster } from 'react-hot-toast';
+import NotificationBell from './NotificationBell';
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,8 +27,10 @@ export default function Layout({ children }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    { name: 'Démarrer Workflow', href: '/workflows/start', icon: RocketLaunchIcon },
     { name: 'Workflows', href: '/workflows', icon: Squares2X2Icon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Notifications', href: '/notifications', icon: BellIcon },
     { name: 'Groupes', href: '/groups', icon: UsersIcon },
     ...(isAdmin() ? [
       // { name: 'Admin', href: '/admin', icon: ChartBarIcon },
@@ -33,6 +38,26 @@ export default function Layout({ children }) {
       { name: 'En attente', href: '/admin/users/pending', icon: ClockIcon },
     ] : []),
   ];
+
+  // Check if a navigation item is active
+  const isNavItemActive = (href) => {
+    // Exact match
+    if (location.pathname === href) return true;
+    
+    // For paths with sub-routes, check if it starts with the href
+    // but exclude if there's a more specific match
+    if (location.pathname.startsWith(href + '/')) {
+      // Check if there's a more specific route in navigation
+      const moreSpecific = navigation.some(item => 
+        item.href !== href && 
+        item.href.startsWith(href) && 
+        location.pathname.startsWith(item.href)
+      );
+      return !moreSpecific;
+    }
+    
+    return false;
+  };
 
   // Fermer le menu quand on clique en dehors
   useEffect(() => {
@@ -74,7 +99,7 @@ export default function Layout({ children }) {
             <nav className="flex-1 space-y-1 px-2 py-4">
               {navigation.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname.startsWith(item.href);
+                const isActive = isNavItemActive(item.href);
                 return (
                   <Link
                     key={item.name}
@@ -105,7 +130,7 @@ export default function Layout({ children }) {
           <nav className="flex-1 space-y-1 px-2 py-4">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.startsWith(item.href);
+              const isActive = isNavItemActive(item.href);
               return (
                 <Link
                   key={item.name}
@@ -139,10 +164,13 @@ export default function Layout({ children }) {
           <div className="flex flex-1 justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex flex-1 items-center">
               <h1 className="text-lg font-semibold text-gray-900">
-                {navigation.find(n => location.pathname.startsWith(n.href))?.name || 'Workflow Engine'}
+                {navigation.find(n => isNavItemActive(n.href))?.name || 'Workflow Engine'}
               </h1>
             </div>
             <div className="flex items-center gap-4">
+              {/* Notification Bell */}
+              <NotificationBell />
+              
               <div className="relative" ref={profileMenuRef}>
                 <button 
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -188,8 +216,8 @@ export default function Layout({ children }) {
 
         {/* Page content */}
         <main className="flex-1 overflow-hidden">
-          <div className="h-[calc(100vh-4rem)] py-6">
-            <div className="h-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="h-[calc(100vh-4rem)] py-6 overflow-y-auto">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               {children}
             </div>
           </div>

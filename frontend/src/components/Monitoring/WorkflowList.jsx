@@ -26,7 +26,7 @@ export default function WorkflowList() {
     try {
       setLoading(true);
       const params = search ? { search } : {};
-      const response = await workflowApi.getAllWorkflows(params);
+      const response = await workflowApi.getAccessibleWorkflows(params);
       setWorkflows(response.data || []);
     } catch (error) {
       toast.error('Failed to load workflows');
@@ -125,7 +125,7 @@ export default function WorkflowList() {
         ) : (
           workflows.map((workflow) => (
             <div
-              key={workflow._id}
+              key={workflow.id}
               className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
             >
               <div className="p-6">
@@ -158,14 +158,14 @@ export default function WorkflowList() {
 
                 <div className="flex gap-2">
                   <Link
-                    to={`/workflows/${workflow._id}/edit`}
+                    to={`/workflows/${workflow.id}/edit`}
                     className="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 flex items-center justify-center gap-1 text-sm"
                   >
                     <PencilIcon className="h-4 w-4" />
                     Edit
                   </Link>
                   <Link
-                    to={`/workflows/${workflow._id}/instances`}
+                    to={`/workflows/${workflow.id}/instances`}
                     className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 flex items-center justify-center gap-1 text-sm"
                   >
                     <EyeIcon className="h-4 w-4" />
@@ -176,7 +176,7 @@ export default function WorkflowList() {
                 <div className="flex gap-2 mt-2">
                   {workflow.status === 'active' && (
                     <button
-                      onClick={() => handleStart(workflow._id)}
+                      onClick={() => handleStart(workflow.id)}
                       className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 flex items-center justify-center gap-1 text-sm"
                     >
                       <PlayIcon className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default function WorkflowList() {
                     </button>
                   )}
                   <button
-                    onClick={() => setDeleteConfirm(workflow._id)}
+                    onClick={() => setDeleteConfirm(workflow.id)}
                     className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 flex items-center justify-center gap-1 text-sm"
                   >
                     <TrashIcon className="h-4 w-4" />

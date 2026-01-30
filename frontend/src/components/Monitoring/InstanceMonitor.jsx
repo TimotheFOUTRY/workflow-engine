@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { workflowApi } from '../../services/workflowApi';
-import { adminApi } from '../../services/adminApi';
+import { useInstancesByWorkflow } from '../../hooks/useInstances';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -10,38 +10,31 @@ import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
 export default function InstanceMonitor() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [workflow, setWorkflow] = useState(null);
-  const [instances, setInstances] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: instances = [], isLoading: loading } = useInstancesByWorkflow(id);
   const [filters, setFilters] = useState({
     status: '',
     search: '',
   });
-  const [selectedInstance, setSelectedInstance] = useState(null);
 
   useEffect(() => {
-    loadData();
-  }, [id, filters]);
+    loadWorkflow();
+  }, [id]);
 
-  const loadData = async () => {
+  const loadWorkflow = async () => {
     try {
-      setLoading(true);
-      const [workflowData, instancesData] = await Promise.all([
-        workflowApi.getWorkflow(id),
-        workflowApi.getWorkflowInstances(id, filters),
-      ]);
+      const workflowData = await workflowApi.getWorkflow(id);
       setWorkflow(workflowData);
-      setInstances(instancesData.instances || instancesData);
     } catch (error) {
-      toast.error('Failed to load workflow instances');
+      toast.error('Failed to load workflow');
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -147,21 +140,26 @@ export default function InstanceMonitor() {
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {instances.map((instance) => (
+            {instances
+              .filter(instance => {
+                if (filters.status && instance.status !== filters.status) return false;
+                if (filters.search && !instance.id.includes(filters.search)) return false;
+                return true;
+              })
+              .map((instance) => (
               <div
-                key={instance._id}
-                className="px-6 py-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => setSelectedInstance(instance)}
+                key={instance.id}
+                className="px-6 py-4 hover:bg-gray-50"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(instance.status)}
                     <div>
                       <p className="font-medium text-gray-900">
-                        Instance #{instance._id.slice(-8)}
+                        Instance #{instance.id.slice(0, 8)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Started by {instance.startedBy || 'System'}
+                        Started by {instance.starter?.username || 'System'}
                       </p>
                     </div>
                   </div>
@@ -184,26 +182,33 @@ export default function InstanceMonitor() {
                       Completed: {format(new Date(instance.completedAt), 'MMM d, yyyy HH:mm')}
                     </span>
                   )}
-                  {instance.currentNode && (
+                  {instance.currentStep && (
                     <span className="flex items-center gap-1">
-                      Current: {instance.currentNode}
+                      Current: {instance.currentStep}
                     </span>
                   )}
                 </div>
 
-                {instance.status === 'running' && (
-                  <div className="mt-3">
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => navigate(`/workflows/${id}/instances/${instance.id}`)}
+                    className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 flex items-center gap-1"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                    Voir les détails
+                  </button>
+                  {instance.status === 'running' && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCancel(instance._id);
+                        handleCancel(instance.id);
                       }}
                       className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100"
                     >
-                      Cancel Instance
+                      Annuler
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>

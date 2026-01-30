@@ -31,7 +31,11 @@ export const AuthProvider = ({ children }) => {
       await registerMutation.mutateAsync(userData);
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.error || 'Échec de l\'inscription' };
+      return { 
+        success: false, 
+        error: error.error || "Échec de l'inscription",
+        existingAccountStatus: error.existingAccountStatus
+      };
     }
   };
 

@@ -6,6 +6,8 @@ import {
   EnvelopeIcon,
   LockClosedIcon,
   CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
 export default function Register() {
@@ -22,6 +24,10 @@ export default function Register() {
     service: '',
   });
   const [errors, setErrors] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [accountStatus, setAccountStatus] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -71,9 +77,23 @@ export default function Register() {
     const result = await register(userData);
 
     if (result.success) {
-      navigate('/login', {
-        state: { message: 'Inscription réussie ! En attente d\'approbation par un administrateur.' }
-      });
+      setShowSuccessModal(true);
+    } else if (result.error) {
+      setErrorMessage(result.error);
+      setAccountStatus(result.existingAccountStatus);
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    navigate('/login');
+  };
+
+  const handleErrorModalClose = () => {
+    setShowErrorModal(false);
+    if (accountStatus === 'approved') {
+      navigate('/login');
     }
   };
 
@@ -305,6 +325,115 @@ export default function Register() {
           </div>
         </form>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleSuccessModalClose}></div>
+            
+            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+              <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <CheckCircleIcon className="h-6 w-6 text-green-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                    <h3 className="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
+                      Demande envoyée avec succès
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Votre demande de création de compte a été soumise avec succès. 
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Un administrateur doit approuver votre compte avant que vous puissiez vous connecter. 
+                        Vous recevrez une notification par email une fois votre compte approuvé.
+                      </p>
+                      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-xs text-blue-700">
+                          ⏱️ Le délai d'approbation peut varier selon la disponibilité des administrateurs.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button
+                  type="button"
+                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
+                  onClick={handleSuccessModalClose}
+                >
+                  Retour à la connexion
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleErrorModalClose}></div>
+            
+            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+              <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
+                    accountStatus === 'approved' ? 'bg-blue-100' : 
+                    accountStatus === 'pending' ? 'bg-yellow-100' : 'bg-red-100'
+                  }`}>
+                    {accountStatus === 'approved' ? (
+                      <CheckCircleIcon className="h-6 w-6 text-blue-600" aria-hidden="true" />
+                    ) : accountStatus === 'pending' ? (
+                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" aria-hidden="true" />
+                    ) : (
+                      <XCircleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                    <h3 className="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
+                      {accountStatus === 'approved' ? 'Compte existant' : 
+                       accountStatus === 'pending' ? 'Demande en attente' : 'Compte existant'}
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        {errorMessage}
+                      </p>
+                      {accountStatus === 'pending' && (
+                        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                          <p className="text-xs text-yellow-700">
+                            ⏱️ Votre demande est en cours de traitement. Vous recevrez une notification une fois votre compte approuvé.
+                          </p>
+                        </div>
+                      )}
+                      {accountStatus === 'approved' && (
+                        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3">
+                          <p className="text-xs text-blue-700">
+                            ✓ Votre compte est déjà actif. Cliquez ci-dessous pour vous connecter.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button
+                  type="button"
+                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
+                  onClick={handleErrorModalClose}
+                >
+                  {accountStatus === 'approved' ? 'Aller à la connexion' : 'Fermer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

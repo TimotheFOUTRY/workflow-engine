@@ -63,9 +63,16 @@ class AuthController {
       });
 
       if (existingUser) {
+        const statusMessages = {
+          pending: 'Un compte avec cet email ou nom d\'utilisateur existe déjà et est en attente d\'approbation.',
+          approved: 'Un compte avec cet email ou nom d\'utilisateur existe déjà et est actif. Vous pouvez vous connecter.',
+          rejected: 'Un compte avec cet email ou nom d\'utilisateur existe déjà mais a été rejeté. Contactez un administrateur.'
+        };
+        
         return res.status(400).json({
           success: false,
-          error: 'User with this email or username already exists'
+          error: statusMessages[existingUser.status] || 'User with this email or username already exists',
+          existingAccountStatus: existingUser.status
         });
       }
 

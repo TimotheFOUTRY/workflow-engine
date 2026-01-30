@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, PlusIcon, TrashIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon, ArrowsPointingOutIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { useForms } from '../../hooks/useForms';
 import AssignedToAutocomplete from '../Common/AssignedToAutocomplete';
-import AssignedToAutocomplete from '../Common/AssignedToAutocomplete';
+import FormPreviewModal from '../Common/FormPreviewModal';
 
 export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
   const [config, setConfig] = useState(node.data.config || {});
@@ -10,6 +10,7 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
   const [formFields, setFormFields] = useState([]);
   const [editingFieldIndex, setEditingFieldIndex] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState(config.formId || '');
   const { data: formsData, isLoading: formsLoading } = useForms();
   const forms = formsData?.data || formsData || [];
@@ -47,7 +48,7 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
         if (n.data.config?.variableName) {
           variables.push({
             name: n.data.config.variableName,
-            type: n.data.config.variableType || 'text',
+            type: n.data.config.variableType || 'string',
             nodeId: n.id,
             source: 'workflow'
           });
@@ -78,6 +79,28 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
     
     console.log('📊 Total variables found:', variables.length, variables);
     return variables;
+  };
+
+  // Map variable type to form field type
+  const getFieldTypeFromVariableType = (variableType) => {
+    const typeMap = {
+      'string': 'text',
+      'number': 'number',
+      'boolean': 'checkbox',
+      'date': 'date',
+      'array': 'select',
+      'object': 'textarea'
+    };
+    return typeMap[variableType] || 'text';
+  };
+
+  // Get available variables (excluding already used ones)
+  const getAvailableVariables = (currentFieldName = '') => {
+    const allVariables = getWorkflowVariables();
+    const usedVariables = formFields
+      .filter(f => f.name && f.name !== currentFieldName)
+      .map(f => f.name);
+    return allVariables.filter(v => !usedVariables.includes(v.name));
   };
 
   // Auto-save on changes
@@ -283,57 +306,38 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
 
                     <div className="grid grid-cols-2 gap-3">
                       {/* Variable Selection */}
-                      <div>
+                      <div className="col-span-2">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Variable *
+                          Variable * <span className="text-xs text-gray-500">(le type est déterminé par le nœud Variable)</span>
                         </label>
                         <select
                           value={field.name}
                           onChange={(e) => {
+                            const selectedVar = workflowVariables.find(v => v.name === e.target.value);
                             const newFields = [...formFields];
                             newFields[index].name = e.target.value;
+                            // Auto-set field type based on variable type
+                            if (selectedVar) {
+                              newFields[index].type = getFieldTypeFromVariableType(selectedVar.type);
+                              newFields[index].variableType = selectedVar.type;
+                            }
                             setFormFields(newFields);
                           }}
                           className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
                           required
                         >
                           <option value="">Sélectionner une variable</option>
-                          {workflowVariables.map(v => (
+                          {getAvailableVariables(field.name).map(v => (
                             <option key={`${v.source}-${v.name}`} value={v.name}>
-                              {v.name} {v.source === 'form' ? '(formulaire)' : '(workflow)'}
+                              {v.name} ({v.type}) {v.source === 'form' ? '📄' : '🔹'}
                             </option>
                           ))}
                         </select>
-                      </div>
-
-                      {/* Field Type */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Type de champ *
-                        </label>
-                        <select
-                          value={field.type}
-                          onChange={(e) => {
-                            const newFields = [...formFields];
-                            newFields[index].type = e.target.value;
-                            // Initialize options for select/radio
-                            if ((e.target.value === 'select' || e.target.value === 'radio') && !newFields[index].options) {
-                              newFields[index].options = [];
-                            }
-                            setFormFields(newFields);
-                          }}
-                          className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="text">Texte</option>
-                          <option value="email">Email</option>
-                          <option value="number">Nombre</option>
-                          <option value="textarea">Zone de texte</option>
-                          <option value="select">Liste déroulante</option>
-                          <option value="checkbox">Case à cocher</option>
-                          <option value="radio">Boutons radio</option>
-                          <option value="date">Date</option>
-                          <option value="file">Fichier</option>
-                        </select>
+                        {field.name && field.variableType && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Type: <span className="font-medium text-indigo-600">{field.variableType}</span> → Champ: <span className="font-medium">{field.type}</span>
+                          </p>
+                        )}
                       </div>
 
                       {/* Label */}
@@ -772,7 +776,36 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de variable</label>
               <select 
                 value={config.variableType || 'string'} 
-                onChange={(e) => setConfig({ ...config, variableType: e.target.value })}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  let defaultValue = '';
+                  
+                  // Set default value based on type
+                  switch(newType) {
+                    case 'string':
+                      defaultValue = '';
+                      break;
+                    case 'number':
+                      defaultValue = '0';
+                      break;
+                    case 'boolean':
+                      defaultValue = 'false';
+                      break;
+                    case 'date':
+                      defaultValue = new Date().toISOString().split('T')[0];
+                      break;
+                    case 'array':
+                      defaultValue = '[]';
+                      break;
+                    case 'object':
+                      defaultValue = '{}';
+                      break;
+                    default:
+                      defaultValue = '';
+                  }
+                  
+                  setConfig({ ...config, variableType: newType, value: defaultValue });
+                }}
                 className="w-full px-3 py-2 border rounded-md"
               >
                 <option value="string">Texte (String)</option>
@@ -785,15 +818,51 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Valeur initiale</label>
-              <input 
-                type="text" 
-                value={config.value || ''} 
-                onChange={(e) => setConfig({ ...config, value: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md" 
-                placeholder="Valeur par défaut ou expression" 
-              />
+              {config.variableType === 'boolean' ? (
+                <select
+                  value={config.value || 'false'}
+                  onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="true">True</option>
+                  <option value="false">False</option>
+                </select>
+              ) : config.variableType === 'number' ? (
+                <input 
+                  type="number" 
+                  value={config.value || '0'} 
+                  onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md" 
+                  placeholder="0" 
+                />
+              ) : config.variableType === 'date' ? (
+                <input 
+                  type="date" 
+                  value={config.value || ''} 
+                  onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md" 
+                />
+              ) : (config.variableType === 'array' || config.variableType === 'object') ? (
+                <textarea
+                  value={config.value || (config.variableType === 'array' ? '[]' : '{}')} 
+                  onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md font-mono text-sm" 
+                  rows="4"
+                  placeholder={config.variableType === 'array' ? '[]' : '{}'}
+                />
+              ) : (
+                <input 
+                  type="text" 
+                  value={config.value || ''} 
+                  onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md" 
+                  placeholder="Valeur par défaut" 
+                />
+              )}
               <p className="text-xs text-gray-500 mt-1">
-                Optionnel - Valeur ou expression pour initialiser la variable
+                {config.variableType === 'array' ? 'Format JSON : ["item1", "item2"]' :
+                 config.variableType === 'object' ? 'Format JSON : {"key": "value"}' :
+                 'Valeur initiale de la variable'}
               </p>
             </div>
           </>
@@ -1076,6 +1145,15 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-900">Node Configuration</h3>
         <div className="flex items-center gap-2">
+          {node.type === 'form' && formFields.length > 0 && (
+            <button 
+              onClick={() => setShowPreview(true)} 
+              className="p-1 hover:bg-green-100 rounded text-green-600"
+              title="Prévisualiser le formulaire"
+            >
+              <EyeIcon className="h-5 w-5" />
+            </button>
+          )}
           <button 
             onClick={() => setIsFullscreen(!isFullscreen)} 
             className="p-1 hover:bg-gray-100 rounded"
@@ -1120,6 +1198,15 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
         </p>
       </div>
     </div>
+
+    {/* Form Preview Modal */}
+    {showPreview && (
+      <FormPreviewModal
+        fields={formFields}
+        title={config.title || 'Aperçu du formulaire'}
+        onClose={() => setShowPreview(false)}
+      />
+    )}
     </>
   );
 }

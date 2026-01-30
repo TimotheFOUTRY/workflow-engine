@@ -11,6 +11,8 @@ const formRoutes = require('./routes/form.routes');
 const adminRoutes = require('./routes/admin.routes');
 const groupRoutes = require('./routes/group.routes');
 const assigneeRoutes = require('./routes/assignee.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const instanceRoutes = require('./routes/instance.routes');
 
 // Import middleware
 const { optionalAuth } = require('./middleware/auth.middleware');
@@ -74,6 +76,8 @@ app.use('/api/forms', formRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/assignees', assigneeRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/instances', instanceRoutes);
 
 // 404 handler
 app.use((req, res) => {

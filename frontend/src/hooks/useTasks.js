@@ -2,6 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '../services/taskApi';
 import toast from 'react-hot-toast';
 
+export const useTasks = (params = {}) => {
+  return useQuery({
+    queryKey: ['tasks', params],
+    queryFn: () => taskApi.getMyTasks(params),
+  });
+};
+
 export const useMyTasks = (params = {}) => {
   return useQuery({
     queryKey: ['tasks', 'my-tasks', params],
