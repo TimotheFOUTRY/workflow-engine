@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -17,8 +17,10 @@ import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const profileMenuRef = useRef(null);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -32,8 +34,26 @@ export default function Layout({ children }) {
     ] : []),
   ];
 
+  // Fermer le menu quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    if (profileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileMenuOpen]);
+
   const handleLogout = () => {
     logout();
+    setProfileMenuOpen(false);
   };
 
   return (
@@ -123,8 +143,11 @@ export default function Layout({ children }) {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative group">
-                <button className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100">
+              <div className="relative" ref={profileMenuRef}>
+                <button 
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100"
+                >
                   <UserCircleIcon className="h-8 w-8 text-gray-400" />
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-700">
@@ -137,24 +160,27 @@ export default function Layout({ children }) {
                 </button>
                 
                 {/* Dropdown menu */}
-                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <UserCircleIcon className="h-4 w-4" />
-                      Mon profil
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                      Déconnexion
-                    </button>
+                {profileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <Link
+                        to="/profile"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <UserCircleIcon className="h-4 w-4" />
+                        Mon profil
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                        Déconnexion
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

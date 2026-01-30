@@ -12,7 +12,9 @@ export const useLogin = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
       queryClient.setQueryData(['currentUser'], user);
-      toast.success('Connexion réussie !');
+      toast.success('Connexion réussie !', {
+        duration: 5000, // Disparaît après 5 secondes
+      });
     },
     onError: (error) => {
       toast.error(error.error || 'Échec de la connexion');

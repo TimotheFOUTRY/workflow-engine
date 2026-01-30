@@ -145,6 +145,51 @@ export default function FieldConfig({ field, onUpdate, onClose }) {
           </div>
         )}
 
+        {/* Variable Binding */}
+        <div className="border-t pt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Variable Binding</h4>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bind to Variable
+            </label>
+            <input
+              type="text"
+              value={config.variableName || ''}
+              onChange={(e) => setConfig({ ...config, variableName: e.target.value })}
+              className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="e.g., user_email, product_name"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              The variable name that will be passed as a parameter when using this form
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Variable Type
+            </label>
+            <select
+              value={config.variableType || 'string'}
+              onChange={(e) => setConfig({ ...config, variableType: e.target.value })}
+              className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="string">String</option>
+              <option value="number">Number</option>
+              <option value="boolean">Boolean</option>
+              <option value="date">Date</option>
+              <option value="array">Array</option>
+              <option value="object">Object</option>
+            </select>
+          </div>
+
+          <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+            <p className="text-xs text-blue-800">
+              <strong>Tip:</strong> Once you bind a field to a variable, it will appear in the form parameters and can be passed from your workflow or application.
+            </p>
+          </div>
+        </div>
+
         {/* Validation Rules */}
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Validation</h4>

@@ -7,8 +7,8 @@ export const useUsers = (filters = {}) => {
     queryKey: ['users', filters],
     queryFn: async () => {
       const response = await userApi.getAllUsers(filters);
-      // Backend returns { success, data: { users: [], total, page, totalPages } }
-      return response.data?.users || [];
+      // API interceptor returns response.data, so response = { success, data: { users: [], total, page, totalPages } }
+      return response.data?.users || response.users || [];
     },
   });
 };

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
+import { useForms } from '../../hooks/useForms';
+import AssignedToAutocomplete from '../Common/AssignedToAutocomplete';
+import AssignedToAutocomplete from '../Common/AssignedToAutocomplete';
 
 export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
   const [config, setConfig] = useState(node.data.config || {});
   const [label, setLabel] = useState(node.data.label || '');
   const [formFields, setFormFields] = useState([]);
+  const [editingFieldIndex, setEditingFieldIndex] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState(config.formId || '');
+  const { data: formsData, isLoading: formsLoading } = useForms();
+  const forms = formsData?.data || formsData || [];
 
   useEffect(() => {
     setConfig(node.data.config || {});
@@ -23,30 +31,64 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
 
   // Get all variables declared in the workflow
   const getWorkflowVariables = () => {
-    if (!nodes) return [];
+    if (!nodes) {
+      console.log('❌ NodeConfig: nodes is null/undefined');
+      return [];
+    }
+    
+    console.log('🔍 NodeConfig: Analyzing', nodes.length, 'nodes');
     
     const variables = [];
+    // Variables from variable nodes
     nodes.forEach(n => {
-      if (n.type === 'variable' && n.data.config?.variableName) {
-        variables.push({
-          name: n.data.config.variableName,
-          type: n.data.config.variableType || 'text',
-          nodeId: n.id
-        });
+      console.log('  Node:', n.id, 'Type:', n.type, 'Data:', n.data);
+      if (n.type === 'variable') {
+        console.log('    ✅ Variable node found! Config:', n.data.config);
+        if (n.data.config?.variableName) {
+          variables.push({
+            name: n.data.config.variableName,
+            type: n.data.config.variableType || 'text',
+            nodeId: n.id,
+            source: 'workflow'
+          });
+          console.log('    ✅ Variable added:', n.data.config.variableName);
+        } else {
+          console.log('    ⚠️ Variable node has no variableName configured');
+        }
       }
     });
+    
+    // Variables from selected form
+    if (selectedFormId && forms.length > 0) {
+      const selectedForm = forms.find(f => f.id === selectedFormId);
+      if (selectedForm && selectedForm.schema?.fields) {
+        selectedForm.schema.fields.forEach(field => {
+          if (field.variableName) {
+            variables.push({
+              name: field.variableName,
+              type: field.variableType || 'string',
+              nodeId: selectedFormId,
+              source: 'form',
+              fieldLabel: field.label
+            });
+          }
+        });
+      }
+    }
+    
+    console.log('📊 Total variables found:', variables.length, variables);
     return variables;
   };
 
-  const handleUpdate = () => {
-    // Convert form fields to JSON schema for 'form' type
+  // Auto-save on changes
+  useEffect(() => {
     if (node.type === 'form') {
       const formSchema = JSON.stringify({ fields: formFields }, null, 2);
       onUpdate({ label, config: { ...config, formSchema } });
     } else {
       onUpdate({ label, config });
     }
-  };
+  }, [label, config, formFields]);
 
   const renderConfigFields = () => {
     switch (node.type) {
@@ -58,12 +100,10 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assigned To
               </label>
-              <input
-                type="text"
+              <AssignedToAutocomplete
                 value={config.assignedTo || ''}
-                onChange={(e) => setConfig({ ...config, assignedTo: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="user@example.com"
+                onChange={(value) => setConfig({ ...config, assignedTo: value })}
+                placeholder="Sélectionner un utilisateur ou un groupe"
               />
             </div>
             <div>
@@ -117,12 +157,10 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assigned To
               </label>
-              <input
-                type="text"
+              <AssignedToAutocomplete
                 value={config.assignedTo || ''}
-                onChange={(e) => setConfig({ ...config, assignedTo: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="user@example.com"
+                onChange={(value) => setConfig({ ...config, assignedTo: value })}
+                placeholder="Sélectionner un utilisateur ou un groupe"
               />
             </div>
             <div>
@@ -165,6 +203,39 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
               />
             </div>
 
+            {/* Form Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sélectionner un formulaire existant (optionnel)
+              </label>
+              <select
+                value={selectedFormId}
+                onChange={(e) => {
+                  setSelectedFormId(e.target.value);
+                  setConfig({ ...config, formId: e.target.value });
+                }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={formsLoading}
+              >
+                <option value="">
+                  {formsLoading ? 'Chargement...' : forms.length === 0 ? 'Aucun formulaire disponible - Créez-en un dans le Form Builder' : 'Aucun - Créer un formulaire personnalisé'}
+                </option>
+                {forms.map(form => (
+                  <option key={form.id} value={form.id}>
+                    {form.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Sélectionnez un formulaire pour utiliser ses variables
+                {selectedFormId && forms.find(f => f.id === selectedFormId) && (
+                  <span className="ml-2 text-green-600">
+                    ✓ {forms.find(f => f.id === selectedFormId).schema?.fields?.filter(f => f.variableName).length || 0} variable(s) disponible(s)
+                  </span>
+                )}
+              </p>
+            </div>
+
             {/* Form Builder */}
             <div className="col-span-2">
               <div className="flex justify-between items-center mb-3">
@@ -173,15 +244,20 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setFormFields([...formFields, {
-                    name: '',
-                    type: 'text',
-                    label: '',
-                    required: false,
-                    placeholder: '',
-                    options: []
-                  }])}
+                  onClick={() => {
+                    const newIndex = formFields.length;
+                    setFormFields([...formFields, {
+                      name: '',
+                      type: 'text',
+                      label: '',
+                      required: false,
+                      placeholder: '',
+                      options: []
+                    }]);
+                    setEditingFieldIndex(newIndex);
+                  }}
                   className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+                  disabled={editingFieldIndex !== null}
                 >
                   <PlusIcon className="h-4 w-4 mr-1" />
                   Ajouter un champ
@@ -190,23 +266,20 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
 
               {workflowVariables.length === 0 && (
                 <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                  ⚠️ Aucune variable déclarée dans le workflow. Ajoutez des nodes "Variable" avant ce formulaire.
+                  ⚠️ Aucune variable disponible. 
+                  {!selectedFormId && <span> Sélectionnez un formulaire avec des variables liées ou ajoutez des nodes "Variable" dans le workflow.</span>}
+                  {selectedFormId && <span> Le formulaire sélectionné n'a pas de variables liées. Créez des champs avec des variables dans le Form Builder.</span>}
                 </div>
               )}
 
-              <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {formFields.map((field, index) => (
-                  <div key={index} className="p-4 border rounded-lg bg-gray-50">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-medium text-sm text-gray-900">Champ {index + 1}</h4>
-                      <button
-                        type="button"
-                        onClick={() => setFormFields(formFields.filter((_, i) => i !== index))}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+                  <div key={index}>
+                    {editingFieldIndex === index ? (
+                      <div className="p-4 border-2 border-indigo-500 rounded-lg bg-white shadow-sm">
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-medium text-sm text-gray-900">Configuration du champ</h4>
+                        </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       {/* Variable Selection */}
@@ -226,7 +299,9 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
                         >
                           <option value="">Sélectionner une variable</option>
                           {workflowVariables.map(v => (
-                            <option key={v.name} value={v.name}>{v.name}</option>
+                            <option key={`${v.source}-${v.name}`} value={v.name}>
+                              {v.name} {v.source === 'form' ? '(formulaire)' : '(workflow)'}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -455,6 +530,64 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
                         </div>
                       )}
                     </div>
+                    
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (field.name && field.label) {
+                            setEditingFieldIndex(null);
+                          } else {
+                            alert('Veuillez remplir au moins la variable et le label');
+                          }
+                        }}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
+                      >
+                        ✓ Valider
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormFields(formFields.filter((_, i) => i !== index));
+                          setEditingFieldIndex(null);
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">📋</span>
+                          <div>
+                            <div className="font-medium text-sm text-gray-900">{field.name}</div>
+                            <div className="text-xs text-gray-500">{field.label} • {field.type}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingFieldIndex(index)}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded"
+                            title="Modifier"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormFields(formFields.filter((_, i) => i !== index))}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded"
+                            title="Supprimer"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -622,14 +755,46 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
         return (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Variable Name</label>
-              <input type="text" value={config.varName || ''} onChange={(e) => setConfig({ ...config, varName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md" placeholder="myVariable" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Variable Name *</label>
+              <input 
+                type="text" 
+                value={config.variableName || ''} 
+                onChange={(e) => setConfig({ ...config, variableName: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md" 
+                placeholder="ex: user_email, total_amount" 
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Nom unique pour identifier cette variable dans le workflow
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
-              <input type="text" value={config.value || ''} onChange={(e) => setConfig({ ...config, value: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md" placeholder="Value or expression" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type de variable</label>
+              <select 
+                value={config.variableType || 'string'} 
+                onChange={(e) => setConfig({ ...config, variableType: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              >
+                <option value="string">Texte (String)</option>
+                <option value="number">Nombre (Number)</option>
+                <option value="boolean">Booléen (True/False)</option>
+                <option value="date">Date</option>
+                <option value="array">Liste (Array)</option>
+                <option value="object">Objet (Object)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valeur initiale</label>
+              <input 
+                type="text" 
+                value={config.value || ''} 
+                onChange={(e) => setConfig({ ...config, value: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md" 
+                placeholder="Valeur par défaut ou expression" 
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optionnel - Valeur ou expression pour initialiser la variable
+              </p>
             </div>
           </>
         );
@@ -896,12 +1061,32 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4 h-full overflow-auto">
+    <>
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsFullscreen(false)}
+        />
+      )}
+      <div className={`bg-white rounded-lg shadow-sm border p-3 overflow-auto transition-all ${
+        isFullscreen 
+          ? 'fixed top-4 left-1/2 -translate-x-1/2 w-[800px] max-w-[90vw] h-[calc(100vh-2rem)] z-50' 
+          : 'h-full'
+      }`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-900">Node Configuration</h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-          <XMarkIcon className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsFullscreen(!isFullscreen)} 
+            className="p-1 hover:bg-gray-100 rounded"
+            title={isFullscreen ? "R\u00e9duire" : "Agrandir"}
+          >
+            <ArrowsPointingOutIcon className="h-5 w-5" />
+          </button>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -924,15 +1109,6 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
             {renderConfigFields()}
           </div>
         </div>
-
-        <div className="pt-4 border-t">
-          <button
-            onClick={handleUpdate}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Update Node
-          </button>
-        </div>
       </div>
 
       <div className="mt-4 p-3 bg-gray-50 rounded-md">
@@ -944,5 +1120,6 @@ export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
         </p>
       </div>
     </div>
+    </>
   );
 }

@@ -204,7 +204,7 @@ export default function FormDesigner() {
         </div>
 
         {/* Field Configuration or Preview */}
-        <div className="w-96 flex-shrink-0">
+        <div className="w-96 flex-shrink-0 flex flex-col gap-4">
           {showPreview ? (
             <FormPreview fields={fields} formName={formName} />
           ) : selectedField ? (
@@ -218,6 +218,51 @@ export default function FormDesigner() {
               <p>Select a field to configure its properties</p>
             </div>
           )}
+
+          {/* Form Parameters Panel */}
+          <div className="bg-white rounded-lg shadow-sm border p-4 max-h-96 overflow-auto">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">
+                λ
+              </span>
+              Form Parameters
+            </h3>
+            
+            {fields.filter(f => f.variableName).length === 0 ? (
+              <p className="text-xs text-gray-500">
+                Bind fields to variables to see them here
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {fields.filter(f => f.variableName).map(field => (
+                  <div key={field.id} className="p-2 bg-indigo-50 rounded border border-indigo-200">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 truncate">
+                          {field.variableName}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {field.label}
+                        </p>
+                      </div>
+                      <span className="inline-block px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded">
+                        {field.variableType || 'string'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-3 pt-3 border-t text-xs text-gray-600">
+              <p className="font-medium text-gray-700 mb-1">How to use:</p>
+              <ol className="list-decimal list-inside space-y-1 text-gray-600">
+                <li>Add fields and bind them to variables</li>
+                <li>Pass parameter values when calling the form</li>
+                <li>Fields will be pre-filled with the values</li>
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
     </div>

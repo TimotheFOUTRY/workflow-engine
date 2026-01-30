@@ -26,7 +26,7 @@ export default function UserManagement() {
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
 
-  const users = usersResponse?.data?.users || usersResponse?.data || [];
+  const users = usersResponse || [];
 
   const handleDelete = async (userId) => {
     await deleteUserMutation.mutateAsync(userId);
@@ -309,7 +309,7 @@ export default function UserManagement() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">Statut:</span>
-                  {getStatusBadge(user.approvalStatus)}
+                  {getStatusBadge(user.status)}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">Inscription:</span>
