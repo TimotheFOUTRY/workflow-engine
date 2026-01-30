@@ -50,6 +50,17 @@ const User = sequelize.define('User', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  name: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      const firstName = this.getDataValue('firstName');
+      const lastName = this.getDataValue('lastName');
+      if (firstName && lastName) {
+        return `${firstName} ${lastName}`;
+      }
+      return firstName || lastName || this.getDataValue('username');
+    }
   }
 }, {
   tableName: 'users',

@@ -75,8 +75,15 @@ docker-compose up -d
 
 4. **Initialize database** (first time only)
 ```bash
+# Using Docker Compose
 docker-compose exec backend npm run migrate
+
+# Or using Make (recommended)
+make migrate
+make seed-test  # Fills database with test data including admin@workflow.com / admin123
 ```
+
+**Default admin credentials**: `admin@workflow.com` / `admin123` ⚠️ Change in production!
 
 ### Local Development
 

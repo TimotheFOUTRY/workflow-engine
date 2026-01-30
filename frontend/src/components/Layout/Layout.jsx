@@ -24,8 +24,9 @@ export default function Layout({ children }) {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Workflows', href: '/workflows', icon: Squares2X2Icon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Groupes', href: '/groups', icon: UsersIcon },
     ...(isAdmin() ? [
-      { name: 'Admin', href: '/admin', icon: ChartBarIcon },
+      // { name: 'Admin', href: '/admin', icon: ChartBarIcon },
       { name: 'Utilisateurs', href: '/admin/users', icon: UsersIcon },
       { name: 'En attente', href: '/admin/users/pending', icon: ClockIcon },
     ] : []),
@@ -160,9 +161,9 @@ export default function Layout({ children }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
-          <div className="py-6">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-hidden">
+          <div className="h-[calc(100vh-4rem)] py-6">
+            <div className="h-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               {children}
             </div>
           </div>

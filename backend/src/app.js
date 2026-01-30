@@ -9,6 +9,7 @@ const workflowRoutes = require('./routes/workflow.routes');
 const taskRoutes = require('./routes/task.routes');
 const formRoutes = require('./routes/form.routes');
 const adminRoutes = require('./routes/admin.routes');
+const groupRoutes = require('./routes/group.routes');
 
 // Import middleware
 const { optionalAuth } = require('./middleware/auth.middleware');
@@ -70,6 +71,7 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/groups', groupRoutes);
 
 // 404 handler
 app.use((req, res) => {

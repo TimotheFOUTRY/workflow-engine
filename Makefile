@@ -17,7 +17,7 @@ help: ## Affiche cette aide
 
 dev: ## Lance l'environnement de développement avec hot reload
 	@echo "$(BLUE)🚀 Démarrage en mode développement...$(NC)"
-	docker compose -f docker-compose.dev.yml up --build
+	docker compose -f docker-compose.dev.yml up --build -d
 
 dev-d: ## Lance l'environnement de développement en arrière-plan
 	@echo "$(BLUE)🚀 Démarrage en mode développement (détaché)...$(NC)"
@@ -148,6 +148,18 @@ seed: ## Crée l'utilisateur admin par défaut
 	docker exec -it workflow-backend-dev npm run seed || \
 	docker exec -it workflow-backend npm run seed
 	@echo "$(GREEN)✓ Seed terminé$(NC)"
+
+seed-test: ## Remplit la DB avec des données de test complètes
+	@echo "$(BLUE)🌱 Remplissage de la base de données avec des données de test...$(NC)"
+	docker exec -it workflow-backend-dev npm run seed:test || \
+	docker exec -it workflow-backend npm run seed:test
+	@echo "$(GREEN)✓ Base de données remplie avec succès$(NC)"
+
+seed-groups: ## Ajoute des groupes de test dans la DB
+	@echo "$(BLUE)🌱 Ajout de groupes de test...$(NC)"
+	docker exec -it workflow-backend-dev npm run seed:groups || \
+	docker exec -it workflow-backend npm run seed:groups
+	@echo "$(GREEN)✓ Groupes ajoutés avec succès$(NC)"
 
 db-shell: ## Ouvre un shell PostgreSQL
 	@echo "$(BLUE)🗄️  Connexion à PostgreSQL...$(NC)"

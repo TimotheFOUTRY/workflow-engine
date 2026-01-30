@@ -31,6 +31,9 @@ import FormBuilder from './components/FormBuilder/FormDesigner'
 import WorkflowList from './components/Monitoring/WorkflowList'
 import InstanceMonitor from './components/Monitoring/InstanceMonitor'
 
+// Groups page
+import GroupsPage from './pages/GroupsPage'
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -64,6 +67,9 @@ function App() {
                   {/* Forms */}
                   <Route path="/forms/new" element={<FormBuilder />} />
                   <Route path="/forms/:id/edit" element={<FormBuilder />} />
+                  
+                  {/* Groups */}
+                  <Route path="/groups" element={<GroupsPage />} />
                   
                   {/* Admin routes */}
                   <Route

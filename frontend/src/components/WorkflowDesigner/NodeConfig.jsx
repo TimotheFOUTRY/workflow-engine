@@ -1,17 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-export default function NodeConfig({ node, onUpdate, onClose }) {
+export default function NodeConfig({ node, onUpdate, onClose, nodes }) {
   const [config, setConfig] = useState(node.data.config || {});
   const [label, setLabel] = useState(node.data.label || '');
+  const [formFields, setFormFields] = useState([]);
 
   useEffect(() => {
     setConfig(node.data.config || {});
     setLabel(node.data.label || '');
+    
+    // Parse existing form schema if editing
+    if (node.type === 'form' && node.data.config?.formSchema) {
+      try {
+        const schema = JSON.parse(node.data.config.formSchema);
+        setFormFields(schema.fields || []);
+      } catch (e) {
+        setFormFields([]);
+      }
+    }
   }, [node]);
 
+  // Get all variables declared in the workflow
+  const getWorkflowVariables = () => {
+    if (!nodes) return [];
+    
+    const variables = [];
+    nodes.forEach(n => {
+      if (n.type === 'variable' && n.data.config?.variableName) {
+        variables.push({
+          name: n.data.config.variableName,
+          type: n.data.config.variableType || 'text',
+          nodeId: n.id
+        });
+      }
+    });
+    return variables;
+  };
+
   const handleUpdate = () => {
-    onUpdate({ label, config });
+    // Convert form fields to JSON schema for 'form' type
+    if (node.type === 'form') {
+      const formSchema = JSON.stringify({ fields: formFields }, null, 2);
+      onUpdate({ label, config: { ...config, formSchema } });
+    } else {
+      onUpdate({ label, config });
+    }
   };
 
   const renderConfigFields = () => {
@@ -70,6 +104,366 @@ export default function NodeConfig({ node, onUpdate, onClose }) {
                 className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Number of days"
               />
+            </div>
+          </>
+        );
+      
+      case 'form':
+        const workflowVariables = getWorkflowVariables();
+        
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Assigned To
+              </label>
+              <input
+                type="text"
+                value={config.assignedTo || ''}
+                onChange={(e) => setConfig({ ...config, assignedTo: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
+              <input
+                type="text"
+                value={config.title || ''}
+                onChange={(e) => setConfig({ ...config, title: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Titre de la tâche"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Priority
+              </label>
+              <select
+                value={config.priority || 'medium'}
+                onChange={(e) => setConfig({ ...config, priority: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Due Days
+              </label>
+              <input
+                type="number"
+                value={config.dueDays || ''}
+                onChange={(e) => setConfig({ ...config, dueDays: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Nombre de jours"
+              />
+            </div>
+
+            {/* Form Builder */}
+            <div className="col-span-2">
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Champs du formulaire
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setFormFields([...formFields, {
+                    name: '',
+                    type: 'text',
+                    label: '',
+                    required: false,
+                    placeholder: '',
+                    options: []
+                  }])}
+                  className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Ajouter un champ
+                </button>
+              </div>
+
+              {workflowVariables.length === 0 && (
+                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                  ⚠️ Aucune variable déclarée dans le workflow. Ajoutez des nodes "Variable" avant ce formulaire.
+                </div>
+              )}
+
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {formFields.map((field, index) => (
+                  <div key={index} className="p-4 border rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="font-medium text-sm text-gray-900">Champ {index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => setFormFields(formFields.filter((_, i) => i !== index))}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Variable Selection */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Variable *
+                        </label>
+                        <select
+                          value={field.name}
+                          onChange={(e) => {
+                            const newFields = [...formFields];
+                            newFields[index].name = e.target.value;
+                            setFormFields(newFields);
+                          }}
+                          className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                          required
+                        >
+                          <option value="">Sélectionner une variable</option>
+                          {workflowVariables.map(v => (
+                            <option key={v.name} value={v.name}>{v.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Field Type */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Type de champ *
+                        </label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => {
+                            const newFields = [...formFields];
+                            newFields[index].type = e.target.value;
+                            // Initialize options for select/radio
+                            if ((e.target.value === 'select' || e.target.value === 'radio') && !newFields[index].options) {
+                              newFields[index].options = [];
+                            }
+                            setFormFields(newFields);
+                          }}
+                          className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          <option value="text">Texte</option>
+                          <option value="email">Email</option>
+                          <option value="number">Nombre</option>
+                          <option value="textarea">Zone de texte</option>
+                          <option value="select">Liste déroulante</option>
+                          <option value="checkbox">Case à cocher</option>
+                          <option value="radio">Boutons radio</option>
+                          <option value="date">Date</option>
+                          <option value="file">Fichier</option>
+                        </select>
+                      </div>
+
+                      {/* Label */}
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Label *
+                        </label>
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => {
+                            const newFields = [...formFields];
+                            newFields[index].label = e.target.value;
+                            setFormFields(newFields);
+                          }}
+                          className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Libellé du champ"
+                        />
+                      </div>
+
+                      {/* Placeholder (not for checkbox/radio/select) */}
+                      {!['checkbox', 'radio', 'select'].includes(field.type) && (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Placeholder
+                          </label>
+                          <input
+                            type="text"
+                            value={field.placeholder || ''}
+                            onChange={(e) => {
+                              const newFields = [...formFields];
+                              newFields[index].placeholder = e.target.value;
+                              setFormFields(newFields);
+                            }}
+                            className="w-full px-2 py-1.5 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Texte d'aide"
+                          />
+                        </div>
+                      )}
+
+                      {/* Options for select/radio */}
+                      {(field.type === 'select' || field.type === 'radio') && (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Options
+                          </label>
+                          <div className="space-y-2">
+                            {(field.options || []).map((option, optIndex) => (
+                              <div key={optIndex} className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={option.value}
+                                  onChange={(e) => {
+                                    const newFields = [...formFields];
+                                    newFields[index].options[optIndex].value = e.target.value;
+                                    setFormFields(newFields);
+                                  }}
+                                  className="flex-1 px-2 py-1 text-sm border rounded"
+                                  placeholder="Valeur"
+                                />
+                                <input
+                                  type="text"
+                                  value={option.label}
+                                  onChange={(e) => {
+                                    const newFields = [...formFields];
+                                    newFields[index].options[optIndex].label = e.target.value;
+                                    setFormFields(newFields);
+                                  }}
+                                  className="flex-1 px-2 py-1 text-sm border rounded"
+                                  placeholder="Libellé"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newFields = [...formFields];
+                                    newFields[index].options = newFields[index].options.filter((_, i) => i !== optIndex);
+                                    setFormFields(newFields);
+                                  }}
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFields = [...formFields];
+                                if (!newFields[index].options) newFields[index].options = [];
+                                newFields[index].options.push({ value: '', label: '' });
+                                setFormFields(newFields);
+                              }}
+                              className="text-sm text-indigo-600 hover:text-indigo-800"
+                            >
+                              + Ajouter une option
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Required checkbox */}
+                      <div className="col-span-2">
+                        <label className="flex items-center text-sm">
+                          <input
+                            type="checkbox"
+                            checked={field.required || false}
+                            onChange={(e) => {
+                              const newFields = [...formFields];
+                              newFields[index].required = e.target.checked;
+                              setFormFields(newFields);
+                            }}
+                            className="mr-2"
+                          />
+                          Champ obligatoire
+                        </label>
+                      </div>
+
+                      {/* Validation for text/number */}
+                      {(field.type === 'text' || field.type === 'textarea') && (
+                        <div className="col-span-2 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Longueur min
+                            </label>
+                            <input
+                              type="number"
+                              value={field.validation?.minLength || ''}
+                              onChange={(e) => {
+                                const newFields = [...formFields];
+                                if (!newFields[index].validation) newFields[index].validation = {};
+                                newFields[index].validation.minLength = parseInt(e.target.value) || undefined;
+                                setFormFields(newFields);
+                              }}
+                              className="w-full px-2 py-1 text-sm border rounded"
+                              placeholder="Min"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Longueur max
+                            </label>
+                            <input
+                              type="number"
+                              value={field.validation?.maxLength || ''}
+                              onChange={(e) => {
+                                const newFields = [...formFields];
+                                if (!newFields[index].validation) newFields[index].validation = {};
+                                newFields[index].validation.maxLength = parseInt(e.target.value) || undefined;
+                                setFormFields(newFields);
+                              }}
+                              className="w-full px-2 py-1 text-sm border rounded"
+                              placeholder="Max"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {field.type === 'number' && (
+                        <div className="col-span-2 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Valeur min
+                            </label>
+                            <input
+                              type="number"
+                              value={field.validation?.min || ''}
+                              onChange={(e) => {
+                                const newFields = [...formFields];
+                                if (!newFields[index].validation) newFields[index].validation = {};
+                                newFields[index].validation.min = parseInt(e.target.value) || undefined;
+                                setFormFields(newFields);
+                              }}
+                              className="w-full px-2 py-1 text-sm border rounded"
+                              placeholder="Min"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Valeur max
+                            </label>
+                            <input
+                              type="number"
+                              value={field.validation?.max || ''}
+                              onChange={(e) => {
+                                const newFields = [...formFields];
+                                if (!newFields[index].validation) newFields[index].validation = {};
+                                newFields[index].validation.max = parseInt(e.target.value) || undefined;
+                                setFormFields(newFields);
+                              }}
+                              className="w-full px-2 py-1 text-sm border rounded"
+                              placeholder="Max"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {formFields.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 text-sm">
+                    Aucun champ ajouté. Cliquez sur "Ajouter un champ" pour commencer.
+                  </div>
+                )}
+              </div>
             </div>
           </>
         );

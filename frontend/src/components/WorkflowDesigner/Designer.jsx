@@ -69,20 +69,20 @@ const nodeTypes = {
       isStart={true}
     />
   ),
-  task: (props) => (
-    <CustomNode 
-      {...props} 
-      color="bg-blue-50 border-blue-400 hover:bg-blue-100" 
-      icon="📋" 
-      title="Task" 
-    />
-  ),
   approval: (props) => (
     <CustomNode 
       {...props} 
       color="bg-yellow-50 border-yellow-400 hover:bg-yellow-100" 
       icon="✓" 
       title="Approval" 
+    />
+  ),
+  form: (props) => (
+    <CustomNode 
+      {...props} 
+      color="bg-blue-50 border-blue-400 hover:bg-blue-100" 
+      icon="📋" 
+      title="Formulaire" 
     />
   ),
   condition: (props) => (
@@ -291,7 +291,7 @@ const nodeTypes = {
 function DesignerContent() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -357,15 +357,13 @@ function DesignerContent() {
     (event) => {
       event.preventDefault();
 
-      const reactFlowBounds = event.target.getBoundingClientRect();
       const type = event.dataTransfer.getData('application/reactflow');
-
       if (!type) return;
 
-      const position = {
-        x: event.clientX - reactFlowBounds.left - 50,
-        y: event.clientY - reactFlowBounds.top - 20,
-      };
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const newNode = {
         id: `${type}-${Date.now()}`,
@@ -376,7 +374,7 @@ function DesignerContent() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [setNodes]
+    [screenToFlowPosition, setNodes]
   );
 
   const onDragOver = useCallback((event) => {
@@ -452,9 +450,9 @@ function DesignerContent() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b mb-2 sm:mb-4 p-2 sm:p-4 rounded-lg">
+      <div className="bg-white shadow-sm border-b mb-2 sm:mb-4 p-2 sm:p-4 rounded-lg flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4 flex-1">
             <button
@@ -490,14 +488,13 @@ function DesignerContent() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 h-full">
-        {/* Node Palette - Hidden on mobile by default, can be toggled */}
+      <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 flex-1 min-h-0">{/* Node Palette - Hidden on mobile by default, can be toggled */}
         <div className="hidden lg:block lg:w-64 flex-shrink-0">
           <NodePalette />
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm border relative min-h-[400px] lg:min-h-0">
+        <div className="flex-1 bg-white rounded-lg shadow-sm border relative h-[500px] lg:h-full">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -577,13 +574,29 @@ function DesignerContent() {
 
         {/* Node Configuration */}
         {selectedNode && (
-          <div className="lg:w-80 flex-shrink-0">
-            <NodeConfig
-              node={selectedNode}
-              onUpdate={(data) => updateNodeData(selectedNode.id, data)}
-              onClose={() => setSelectedNode(null)}
-            />
-          </div>
+          <>
+            {/* Desktop: sidebar */}
+            <div className="hidden lg:block lg:w-80 flex-shrink-0">
+              <NodeConfig
+                node={selectedNode}
+                nodes={nodes}
+                onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+                onClose={() => setSelectedNode(null)}
+              />
+            </div>
+            
+            {/* Mobile/Tablet: Modal overlay */}
+            <div className="lg:hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-end sm:items-center justify-center">
+              <div className="bg-white w-full sm:max-w-lg sm:mx-4 rounded-t-xl sm:rounded-xl shadow-xl max-h-[80vh] overflow-hidden">
+                <NodeConfig
+                  node={selectedNode}
+                  nodes={nodes}
+                  onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+                  onClose={() => setSelectedNode(null)}
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

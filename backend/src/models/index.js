@@ -4,6 +4,7 @@ const Task = require('./task.model');
 const Form = require('./form.model');
 const User = require('./user.model');
 const WorkflowHistory = require('./workflowHistory.model');
+const Group = require('./group.model');
 
 // Define relationships
 
@@ -73,5 +74,6 @@ module.exports = {
   Task,
   Form,
   User,
-  WorkflowHistory
+  WorkflowHistory,
+  Group
 };

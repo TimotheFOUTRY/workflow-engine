@@ -5,7 +5,11 @@ import toast from 'react-hot-toast';
 export const useUsers = (filters = {}) => {
   return useQuery({
     queryKey: ['users', filters],
-    queryFn: () => userApi.getAllUsers(filters),
+    queryFn: async () => {
+      const response = await userApi.getAllUsers(filters);
+      // Backend returns { success, data: { users: [], total, page, totalPages } }
+      return response.data?.users || [];
+    },
   });
 };
 

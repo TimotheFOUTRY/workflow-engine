@@ -7,9 +7,11 @@ import {
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { useTaskStatistics, useMyTasks } from '../hooks/useTasks';
+import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 
 export default function UserDashboard() {
+  const { user } = useAuth();
   const { data: statistics = {}, isLoading: statsLoading } = useTaskStatistics();
   const { data: tasksResponse, isLoading: tasksLoading } = useMyTasks({ limit: 10, status: 'pending' });
   
