@@ -247,12 +247,24 @@ class WorkflowEngine {
     
     logger.info(`assignedTo received: ${JSON.stringify(assignedTo)} (type: ${typeof assignedTo})`);
     
+    // First, try to parse if it's a JSON string
+    let parsedAssignedTo = assignedTo;
     if (typeof assignedTo === 'string') {
+      try {
+        parsedAssignedTo = JSON.parse(assignedTo);
+        logger.info(`Parsed assignedTo: ${JSON.stringify(parsedAssignedTo)}`);
+      } catch (e) {
+        // Not JSON, treat as simple UUID string
+        parsedAssignedTo = assignedTo;
+      }
+    }
+    
+    if (typeof parsedAssignedTo === 'string') {
       // Simple UUID string
-      assignees = [assignedTo];
-    } else if (Array.isArray(assignedTo)) {
+      assignees = [parsedAssignedTo];
+    } else if (Array.isArray(parsedAssignedTo)) {
       // Array of UUIDs or array of objects
-      assignees = assignedTo.map(item => {
+      assignees = parsedAssignedTo.map(item => {
         if (typeof item === 'string') {
           return item;
         } else if (item && typeof item === 'object') {
@@ -266,9 +278,9 @@ class WorkflowEngine {
         }
         return null;
       }).filter(id => id); // Remove nulls
-    } else if (typeof assignedTo === 'object') {
+    } else if (typeof parsedAssignedTo === 'object') {
       // Single object
-      const id = assignedTo.id || assignedTo.value;
+      const id = parsedAssignedTo.id || parsedAssignedTo.value;
       if (id && id.includes(':')) {
         assignees = [id.split(':')[1]];
       } else {

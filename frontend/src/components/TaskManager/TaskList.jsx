@@ -159,8 +159,8 @@ export default function TaskList() {
           <div className="divide-y divide-gray-200">
             {tasks.map((task) => (
               <Link
-                key={task._id}
-                to={`/tasks/${task._id}`}
+                key={task.id}
+                to={`/tasks/${task.id}`}
                 className="block hover:bg-gray-50 transition-colors"
               >
                 <div className="px-6 py-4">

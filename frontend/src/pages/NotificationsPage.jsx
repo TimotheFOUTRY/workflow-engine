@@ -112,7 +112,7 @@ const NotificationsPage = () => {
     if (notification.data?.workflowInstanceId) {
       navigate(`/workflows/${notification.data.workflowInstanceId}/instances`);
     } else if (notification.data?.taskId) {
-      navigate('/tasks');
+      navigate(`/tasks/${notification.data.taskId}`);
     }
   };
 

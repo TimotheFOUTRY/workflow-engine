@@ -40,6 +40,16 @@ WorkflowHistory.belongsTo(WorkflowInstance, {
   as: 'instance'
 });
 
+// User -> WorkflowHistory (one-to-many)
+User.hasMany(WorkflowHistory, {
+  foreignKey: 'userId',
+  as: 'historyEntries'
+});
+WorkflowHistory.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // User -> Task (one-to-many)
 User.hasMany(Task, {
   foreignKey: 'assignedTo',
@@ -48,6 +58,16 @@ User.hasMany(Task, {
 Task.belongsTo(User, {
   foreignKey: 'assignedTo',
   as: 'assignee'
+});
+
+// User -> WorkflowInstance (one-to-many for startedBy)
+User.hasMany(WorkflowInstance, {
+  foreignKey: 'startedBy',
+  as: 'startedInstances'
+});
+WorkflowInstance.belongsTo(User, {
+  foreignKey: 'startedBy',
+  as: 'starter'
 });
 
 // Form -> Task (one-to-many)

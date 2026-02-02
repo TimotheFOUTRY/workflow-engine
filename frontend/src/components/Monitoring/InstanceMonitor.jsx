@@ -18,6 +18,7 @@ export default function InstanceMonitor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [workflow, setWorkflow] = useState(null);
+  const [selectedInstance, setSelectedInstance] = useState(null);
   const { data: instances = [], isLoading: loading } = useInstancesByWorkflow(id);
   const [filters, setFilters] = useState({
     status: '',
@@ -221,7 +222,7 @@ export default function InstanceMonitor() {
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold">
-                Instance #{selectedInstance._id.slice(-8)}
+                Instance #{selectedInstance.id.slice(-8)}
               </h3>
               <button
                 onClick={() => setSelectedInstance(null)}

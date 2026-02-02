@@ -89,6 +89,14 @@ const nodeTypes = {
       title="Formulaire" 
     />
   ),
+  task: (props) => (
+    <CustomNode 
+      {...props} 
+      color="bg-blue-50 border-blue-400 hover:bg-blue-100" 
+      icon="📋" 
+      title="Task" 
+    />
+  ),
   condition: (props) => (
     <CustomNode 
       {...props} 
