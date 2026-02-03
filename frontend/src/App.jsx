@@ -4,8 +4,10 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './lib/queryClient'
 import { AuthProvider } from './context/AuthContext'
+import { useNotificationStream } from './hooks'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout/Layout'
+import NotificationStreamProvider from './components/NotificationStreamProvider'
 
 // Auth pages
 import Login from './pages/Login'
@@ -46,26 +48,27 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+        <NotificationStreamProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Routes>
+          {/* Protected routes */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<UserDashboard />} />
                   <Route path="/profile" element={<UserProfile />} />
                   
                   {/* Tasks */}
                   <Route path="/tasks" element={<TaskList />} />
-                  <Route path="/tasks/:id" element={<TaskDetail />} />
                   <Route path="/tasks/:taskId/complete" element={<TaskComplete />} />
+                  <Route path="/tasks/:id" element={<TaskDetail />} />
                   
                   {/* Notifications */}
                   <Route path="/notifications" element={<NotificationsPage />} />
@@ -149,6 +152,7 @@ function App() {
           }
         />
       </Routes>
+    </NotificationStreamProvider>
     </AuthProvider>
     <ReactQueryDevtools initialIsOpen={false} />
   </QueryClientProvider>

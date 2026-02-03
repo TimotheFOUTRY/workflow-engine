@@ -82,6 +82,30 @@ class QueueService {
   }
 
   /**
+   * Publish notification event to queue for real-time delivery
+   */
+  async publishNotificationEvent(event) {
+    try {
+      const channel = getChannel();
+      const message = JSON.stringify({
+        ...event,
+        timestamp: new Date().toISOString()
+      });
+
+      channel.sendToQueue(
+        QUEUES.NOTIFICATIONS,
+        Buffer.from(message),
+        { persistent: true }
+      );
+
+      logger.debug(`Published notification event: ${event.type}`);
+    } catch (error) {
+      logger.error('Error publishing notification event:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Start consuming workflow events
    */
   async consumeWorkflowEvents(callback) {
@@ -164,6 +188,35 @@ class QueueService {
       logger.info('Started listening to enterprise bus');
     } catch (error) {
       logger.error('Error starting enterprise bus listener:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start consuming notification events for real-time delivery
+   */
+  async consumeNotificationEvents(callback) {
+    try {
+      const channel = getChannel();
+      
+      await channel.consume(QUEUES.NOTIFICATIONS, async (msg) => {
+        if (msg) {
+          try {
+            const event = JSON.parse(msg.content.toString());
+            logger.debug(`Received notification event: ${event.type}`);
+            
+            await callback(event);
+            channel.ack(msg);
+          } catch (error) {
+            logger.error('Error processing notification event:', error);
+            channel.nack(msg, false, false); // Don't requeue
+          }
+        }
+      });
+
+      logger.info('Started consuming notification events');
+    } catch (error) {
+      logger.error('Error starting notification events consumer:', error);
       throw error;
     }
   }

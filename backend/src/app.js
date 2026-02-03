@@ -37,12 +37,26 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? (process.env.CORS_ORIGIN || 'http://localhost:3000')
-    : true, // En dev, accepte toutes les origines
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',');
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // En dev, accepte toutes les origines
+      callback(null, true);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Cache-Control', 'Content-Length']
 };
 
 app.use(cors(corsOptions));

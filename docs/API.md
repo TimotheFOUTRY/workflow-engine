@@ -239,6 +239,182 @@ GET /api/tasks/statistics
 }
 ```
 
+### Lock Form for Editing
+```http
+POST /api/tasks/:id/lock
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Form locked successfully"
+}
+```
+
+**Error Response (409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "Form is currently locked by another user",
+  "lockedBy": {
+    "id": "user-uuid",
+    "username": "john.doe",
+    "firstName": "John",
+    "lastName": "Doe"
+  }
+}
+```
+
+### Unlock Form
+```http
+POST /api/tasks/:id/unlock
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Form unlocked successfully"
+}
+```
+
+### Save Form Draft (Partial Save)
+```http
+POST /api/tasks/:id/save-draft
+Content-Type: application/json
+
+{
+  "formData": {
+    "field1": "value1",
+    "field2": "value2"
+  },
+  "progress": 45
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Form draft saved successfully",
+  "data": {
+    "id": "task-uuid",
+    "formData": { ... },
+    "formProgress": 45,
+    "lockedBy": null,
+    "lockedAt": null
+  }
+}
+```
+
+**Notes:**
+- Automatically unlocks the form after saving
+- Sends notifications to workflow owner and assigned users
+- Only editable fields for the user are saved (others are filtered)
+
+### Submit Completed Form
+```http
+POST /api/tasks/:id/submit-form
+Content-Type: application/json
+
+{
+  "formData": {
+    "field1": "value1",
+    "field2": "value2",
+    "field3": "value3"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Form submitted successfully",
+  "data": {
+    "id": "task-uuid",
+    "status": "completed",
+    "formData": { ... },
+    "formProgress": 100,
+    "completedAt": "2026-02-03T20:30:00.000Z"
+  }
+}
+```
+
+**Notes:**
+- Marks the task as completed
+- Sets formProgress to 100
+- Sends completion notifications to assigned users
+- Workflow continues to next step
+
+### Check Form Access and Permissions
+```http
+GET /api/tasks/:id/form-access
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "canEdit": true,
+    "reason": null,
+    "editableFields": ["field1", "field2", "field3"],
+    "formData": {
+      "field1": "existing-value"
+    },
+    "formProgress": 30,
+    "lockedBy": null,
+    "lockedAt": null
+  }
+}
+```
+
+**Response when locked by another user:**
+```json
+{
+  "success": true,
+  "data": {
+    "canEdit": false,
+    "reason": "Form is locked by another user",
+    "editableFields": [],
+    "formData": { ... },
+    "formProgress": 45,
+    "lockedBy": "user-uuid",
+    "lockedAt": "2026-02-03T20:25:00.000Z"
+  }
+}
+```
+
+**Notes:**
+- `editableFields` contains only fields the user can edit based on field-level assignments
+- If field has no `assignedUsers`, all task assignees can edit
+- If field has `assignedUsers`, only those users can edit
+
+### Get Form Lock Status
+```http
+GET /api/tasks/:id/lock-status
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isLocked": true,
+    "lockedBy": {
+      "id": "user-uuid",
+      "username": "john.doe",
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "lockedAt": "2026-02-03T20:25:00.000Z",
+    "formProgress": 45
+  }
+}
+```
+
 ---
 
 ## Forms
@@ -446,6 +622,76 @@ GET /api/admin/statistics
 ```http
 GET /api/admin/users
 ```
+
+---
+
+## Users
+
+### Get User Basic Info
+Get basic information about a user (available to all authenticated users).
+
+```http
+GET /api/users/basic/:id
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user-uuid",
+    "username": "john.doe",
+    "email": "john.doe@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "service": "IT",
+    "role": "user"
+  }
+}
+```
+
+**Use case:** Get email and details of a user when double-clicking on assigned user in a task.
+
+### Get Users by IDs (Bulk Fetch)
+Get multiple users at once by their IDs.
+
+```http
+GET /api/users/by-ids?ids=uuid1,uuid2,uuid3
+```
+
+**Query Parameters:**
+- `ids` - Comma-separated list of user UUIDs
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid1",
+      "username": "user1",
+      "email": "user1@example.com",
+      "firstName": "First",
+      "lastName": "User",
+      "service": "Finance",
+      "role": "user",
+      "status": "approved"
+    },
+    {
+      "id": "uuid2",
+      "username": "user2",
+      "email": "user2@example.com",
+      "firstName": "Second",
+      "lastName": "User",
+      "service": "HR",
+      "role": "manager",
+      "status": "approved"
+    }
+  ]
+}
+```
+
+**Use case:** Load details of all users in `assignedUsers` array.
 
 ---
 

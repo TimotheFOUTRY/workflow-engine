@@ -65,6 +65,45 @@ const Task = sequelize.define('Task', {
   comments: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  lockedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    field: 'locked_by',
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'User ID who currently has the form locked for editing'
+  },
+  lockedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'locked_at',
+    comment: 'Timestamp when the form was locked'
+  },
+  formData: {
+    type: DataTypes.JSONB,
+    defaultValue: {},
+    field: 'form_data',
+    comment: 'Current form data including partial saves'
+  },
+  formProgress: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'form_progress',
+    validate: {
+      min: 0,
+      max: 100
+    },
+    comment: 'Form completion percentage (0-100)'
+  },
+  assignedUsers: {
+    type: DataTypes.ARRAY(DataTypes.UUID),
+    defaultValue: [],
+    allowNull: true,
+    field: 'assigned_users',
+    comment: 'Array of user IDs assigned to work on this task'
   }
 }, {
   tableName: 'tasks',

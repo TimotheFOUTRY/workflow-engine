@@ -6,6 +6,7 @@ const { sequelize } = require('./config/database');
 const rabbitmq = require('./config/rabbitmq');
 const queueService = require('./services/queueService');
 const notificationService = require('./services/notificationService');
+const notificationConsumerService = require('./services/notificationConsumerService');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -52,6 +53,10 @@ async function startServer() {
       // Start notification service to consume events
       await notificationService.startListening();
       logger.info('Notification service started');
+      
+      // Start notification consumer for real-time delivery
+      await notificationConsumerService.start();
+      logger.info('Notification consumer service started');
       
       // Start consuming events (optional - enable if needed)
       // await queueService.consumeWorkflowEvents(async (event) => {

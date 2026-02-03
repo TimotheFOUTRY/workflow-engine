@@ -18,6 +18,7 @@ class TaskService {
       const task = await Task.findByPk(taskId, {
         include: [
           { model: User, as: 'assignee', attributes: ['id', 'username', 'email', 'firstName', 'lastName'] },
+          { model: User, as: 'lockedByUser', attributes: ['id', 'username', 'email', 'firstName', 'lastName'] },
           { model: Form, as: 'form' },
           { 
             model: WorkflowInstance, 
@@ -52,6 +53,8 @@ class TaskService {
       const tasks = await Task.findAll({
         where,
         include: [
+          { model: User, as: 'assignee', attributes: ['id', 'username', 'email', 'firstName', 'lastName'] },
+          { model: User, as: 'lockedByUser', attributes: ['id', 'username', 'email', 'firstName', 'lastName'] },
           { model: Form, as: 'form' },
           { 
             model: WorkflowInstance, 

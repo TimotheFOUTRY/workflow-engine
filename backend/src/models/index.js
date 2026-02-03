@@ -60,6 +60,16 @@ Task.belongsTo(User, {
   as: 'assignee'
 });
 
+// User -> Task (one-to-many for lockedBy)
+User.hasMany(Task, {
+  foreignKey: 'lockedBy',
+  as: 'lockedTasks'
+});
+Task.belongsTo(User, {
+  foreignKey: 'lockedBy',
+  as: 'lockedByUser'
+});
+
 // User -> WorkflowInstance (one-to-many for startedBy)
 User.hasMany(WorkflowInstance, {
   foreignKey: 'startedBy',

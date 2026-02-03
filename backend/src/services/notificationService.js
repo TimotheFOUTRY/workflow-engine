@@ -183,10 +183,38 @@ class NotificationService {
       });
       
       logger.info(`Notification created: ${notification.id}`);
+      
+      // Publish to RabbitMQ for real-time delivery
+      await this.publishNotificationEvent(notification);
+      
       return notification;
     } catch (error) {
       logger.error('Error creating notification:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Publish notification event to RabbitMQ for real-time delivery
+   */
+  async publishNotificationEvent(notification) {
+    try {
+      await queueService.publishNotificationEvent({
+        type: 'notification.created',
+        notification: {
+          id: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          data: notification.data,
+          read: notification.read,
+          createdAt: notification.createdAt
+        }
+      });
+    } catch (error) {
+      // Don't throw error, just log it - notification is already saved
+      logger.error('Error publishing notification event:', error);
     }
   }
 

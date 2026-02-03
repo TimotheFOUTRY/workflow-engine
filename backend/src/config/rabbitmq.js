@@ -17,7 +17,8 @@ const QUEUES = {
   WORKFLOW_EVENTS: 'workflow.events',
   TASK_QUEUE: 'task.queue',
   ENTERPRISE_BUS: 'enterprise.bus',
-  LOCAL_BUS: 'local.bus'
+  LOCAL_BUS: 'local.bus',
+  NOTIFICATIONS: 'notifications.realtime'
 };
 
 const connect = async () => {

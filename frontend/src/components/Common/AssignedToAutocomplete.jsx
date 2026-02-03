@@ -44,7 +44,7 @@ export default function AssignedToAutocomplete({ value = '', onChange, placehold
       const groupItem = {
         id: assignee.id,
         type: 'group',
-        label: assignee.label,
+        label: assignee.label || assignee.name || 'Groupe sans nom',
         memberIds: assignee.memberIds,
         value: assignee.value
       };
@@ -52,13 +52,20 @@ export default function AssignedToAutocomplete({ value = '', onChange, placehold
       setSelectedItems(newItems);
       onChange(JSON.stringify(newItems));
     } else {
-      // Add user
+      // Add user - construct a proper label from firstName + lastName or username
+      const displayName = assignee.firstName && assignee.lastName 
+        ? `${assignee.firstName} ${assignee.lastName}`
+        : assignee.username || assignee.label || assignee.email;
+      
       const userItem = {
         id: assignee.id,
         type: 'user',
-        label: assignee.label,
+        label: displayName,
+        firstName: assignee.firstName,
+        lastName: assignee.lastName,
+        username: assignee.username,
         email: assignee.email,
-        value: assignee.value
+        value: assignee.value || assignee.email
       };
       const newItems = [...selectedItems.filter(item => item.id !== assignee.id), userItem];
       setSelectedItems(newItems);

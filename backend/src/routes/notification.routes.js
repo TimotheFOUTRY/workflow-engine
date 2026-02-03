@@ -6,6 +6,9 @@ const { authenticate } = require('../middleware/auth.middleware');
 // All routes require authentication
 router.use(authenticate);
 
+// SSE endpoint for real-time notifications
+router.get('/stream', notificationController.subscribeToNotifications);
+
 // Get all notifications for user
 router.get('/', notificationController.getUserNotifications);
 
@@ -20,5 +23,10 @@ router.put('/mark-all-read', notificationController.markAllAsRead);
 
 // Delete notification
 router.delete('/:id', notificationController.deleteNotification);
+
+// Test endpoint (development only)
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/test', notificationController.createTestNotification);
+}
 
 module.exports = router;

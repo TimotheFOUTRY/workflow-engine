@@ -469,6 +469,75 @@ class UserController {
       });
     }
   }
+
+  /**
+   * Get users by IDs (bulk fetch for assigned users)
+   * Available to all authenticated users for viewing colleague info
+   */
+  async getUsersByIds(req, res) {
+    try {
+      const { ids } = req.query;
+
+      if (!ids) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing ids parameter'
+        });
+      }
+
+      // Parse IDs - can be comma-separated or array
+      const userIds = Array.isArray(ids) ? ids : ids.split(',');
+
+      const users = await User.findAll({
+        where: {
+          id: userIds
+        },
+        attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'service', 'role', 'status']
+      });
+
+      res.json({
+        success: true,
+        data: users
+      });
+    } catch (error) {
+      logger.error('Get users by IDs error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get basic user info (available to all authenticated users)
+   */
+  async getUserBasicInfo(req, res) {
+    try {
+      const { id } = req.params;
+
+      const user = await User.findByPk(id, {
+        attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'service', 'role']
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      logger.error('Get user basic info error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = new UserController();

@@ -14,6 +14,20 @@ router.use(authenticate);
 router.get('/statistics', authorize('admin'), userController.getUserStatistics.bind(userController));
 
 /**
+ * @route   GET /api/users/by-ids
+ * @desc    Get users by IDs (bulk fetch)
+ * @access  Private (All authenticated users)
+ */
+router.get('/by-ids', userController.getUsersByIds.bind(userController));
+
+/**
+ * @route   GET /api/users/basic/:id
+ * @desc    Get basic user info (available to all authenticated users)
+ * @access  Private (All authenticated users)
+ */
+router.get('/basic/:id', userController.getUserBasicInfo.bind(userController));
+
+/**
  * @route   GET /api/users/pending
  * @desc    Get all pending users
  * @access  Private (Admin)

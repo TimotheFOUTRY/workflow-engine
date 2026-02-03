@@ -15,16 +15,25 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
  */
 const authenticate = async (req, res, next) => {
   try {
+    // Check for token in Authorization header first
+    let token = null;
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+    
+    // For SSE connections, also check query parameter
+    if (!token && req.query.token) {
+      token = req.query.token;
+    }
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         error: 'No token provided'
       });
     }
-
-    const token = authHeader.substring(7);
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);

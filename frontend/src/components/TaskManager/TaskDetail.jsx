@@ -57,6 +57,14 @@ export default function TaskDetail() {
 
   const handleTaskComplete = async (action, data) => {
     try {
+      // If action is 'complete' and task is a form task, redirect to the TaskComplete page
+      if (action === 'complete' && task.taskType === 'form') {
+        console.log('Redirecting to complete page for form task');
+        navigate(`/tasks/${id}/complete`);
+        return;
+      }
+
+      // Otherwise, complete the task directly (for simple tasks or approval/reject actions)
       const payload = { ...formData, ...data };
       await taskApi.completeTask(id, { action, data: payload });
       toast.success(`Task ${action} successfully`);

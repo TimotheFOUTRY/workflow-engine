@@ -14,4 +14,12 @@ router.post('/:id/complete', taskController.completeTask.bind(taskController));
 router.post('/:id/reassign', taskController.reassignTask.bind(taskController));
 router.put('/:id/status', taskController.updateTaskStatus.bind(taskController));
 
+// Form management routes
+router.post('/:id/lock', taskController.lockForm.bind(taskController));
+router.post('/:id/unlock', taskController.unlockForm.bind(taskController));
+router.post('/:id/save-draft', taskController.saveFormDraft.bind(taskController));
+router.post('/:id/submit-form', taskController.submitForm.bind(taskController));
+router.get('/:id/form-access', taskController.checkFormAccess.bind(taskController));
+router.get('/:id/lock-status', taskController.getFormLockStatus.bind(taskController));
+
 module.exports = router;
