@@ -27,7 +27,7 @@ export const useNotifications = () => {
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       const response = await api.get('/notifications/unread-count');
-      return response?.count ?? 0;
+      return response?.data?.count ?? 0;
     },
     refetchInterval: 10000 // Refetch every 10 seconds for badge
   });

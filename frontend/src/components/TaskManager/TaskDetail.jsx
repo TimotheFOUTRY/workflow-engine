@@ -57,8 +57,8 @@ export default function TaskDetail() {
 
   const handleTaskComplete = async (action, data) => {
     try {
-      // If action is 'complete' and task is a form task, redirect to the TaskComplete page
-      if (action === 'complete' && task.taskType === 'form') {
+      // If action is 'complete' and task has a form (formId or taskType 'form'), redirect to the TaskComplete page
+      if (action === 'complete' && (task.formId || task.taskType === 'form')) {
         console.log('Redirecting to complete page for form task');
         navigate(`/tasks/${id}/complete`);
         return;

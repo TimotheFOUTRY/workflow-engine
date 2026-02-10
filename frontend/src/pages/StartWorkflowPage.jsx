@@ -22,7 +22,10 @@ const StartWorkflowPage = () => {
     queryFn: async () => {
       const response = await api.get('/workflows/accessible');
       return response.data;
-    }
+    },
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // Start workflow mutation

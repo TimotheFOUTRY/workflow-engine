@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import taskApi from '../services/taskApi';
+import { formApi } from '../services/formApi';
 import { useCompleteTask } from '../hooks/useTasks';
 import { ArrowLeftIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
@@ -11,6 +12,7 @@ function TaskComplete() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({});
   const [decision, setDecision] = useState(null);
+  const [formSchema, setFormSchema] = useState(null);
   
   const completeTaskMutation = useCompleteTask();
 
@@ -19,21 +21,39 @@ function TaskComplete() {
     queryKey: ['task', taskId],
     queryFn: async () => {
       const response = await taskApi.getTask(taskId);
-      return response;
+      return response.data || response;
     },
     enabled: !!taskId
   });
 
-  // Initialize form data from task fields
+  // Load form schema if formId exists
   useEffect(() => {
-    if (task?.taskData?.formFields) {
+    const loadForm = async () => {
+      if (task?.formId) {
+        try {
+          const formResponse = await formApi.getForm(task.formId);
+          const form = formResponse.data || formResponse;
+          setFormSchema(form.schema);
+        } catch (error) {
+          console.error('Failed to load form schema:', error);
+          toast.error('Erreur lors du chargement du formulaire');
+        }
+      }
+    };
+    loadForm();
+  }, [task]);
+
+  // Initialize form data from task fields or form schema
+  useEffect(() => {
+    const fields = formSchema?.fields || task?.taskData?.formFields || [];
+    if (fields.length > 0) {
       const initialData = {};
-      task.taskData.formFields.forEach(field => {
+      fields.forEach(field => {
         initialData[field.name] = field.defaultValue || '';
       });
       setFormData(initialData);
     }
-  }, [task]);
+  }, [task, formSchema]);
 
   const handleInputChange = (fieldName, value) => {
     setFormData(prev => ({
@@ -43,9 +63,10 @@ function TaskComplete() {
   };
 
   const validateForm = () => {
-    if (!task?.taskData?.formFields) return true;
+    const fields = formSchema?.fields || task?.taskData?.formFields || [];
+    if (fields.length === 0) return true;
 
-    for (const field of task.taskData.formFields) {
+    for (const field of fields) {
       if (field.required && !formData[field.name]) {
         toast.error(`Le champ "${field.label}" est requis`);
         return false;
@@ -220,11 +241,18 @@ function TaskComplete() {
     );
   }
 
-  if (task.status !== 'pending') {
+  if (!['pending', 'in_progress', 'assigned'].includes(task.status)) {
+    const statusMessages = {
+      'completed': 'complétée',
+      'cancelled': 'annulée',
+      'failed': 'échouée'
+    };
+    const statusText = statusMessages[task.status] || task.status;
+    
     return (
       <div className="max-w-3xl mx-auto p-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800">Cette tâche a déjà été {task.status === 'completed' ? 'complétée' : task.status}</p>
+          <p className="text-yellow-800">Cette tâche a déjà été {statusText}.</p>
           <button
             onClick={() => navigate('/tasks')}
             className="mt-4 text-blue-600 hover:text-blue-800"
@@ -260,8 +288,10 @@ function TaskComplete() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Form Fields */}
-          {task.taskData?.formFields && task.taskData.formFields.length > 0 ? (
-            task.taskData.formFields.map((field) => (
+          {(() => {
+            const fields = formSchema?.fields || task.taskData?.formFields || [];
+            return fields.length > 0 ? (
+              fields.map((field) => (
               <div key={field.name}>
                 <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
                   {field.label}
@@ -272,10 +302,17 @@ function TaskComplete() {
                   <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
                 )}
               </div>
-            ))
-          ) : (
-            <div className="text-gray-500">Aucun champ de formulaire</div>
-          )}
+              ))
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800">
+                  {task.formId 
+                    ? "Le formulaire n'a pas encore été configuré pour cette tâche."
+                    : "Cette tâche ne nécessite pas de remplir de formulaire. Vous pouvez la compléter directement."}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Approval Buttons */}
           {task.taskType === 'approval' && (

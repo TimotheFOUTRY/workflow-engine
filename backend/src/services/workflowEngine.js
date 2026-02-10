@@ -296,6 +296,20 @@ class WorkflowEngine {
 
     logger.info(`Extracted assignees: ${JSON.stringify(assignees)}`);
 
+    // Parse formSchema if it exists
+    let formFields = config.formFields || [];
+    if (!formFields.length && config.formSchema) {
+      try {
+        const parsedSchema = typeof config.formSchema === 'string' 
+          ? JSON.parse(config.formSchema) 
+          : config.formSchema;
+        formFields = parsedSchema.fields || [];
+        logger.info(`Parsed formSchema: ${formFields.length} fields found`);
+      } catch (error) {
+        logger.error(`Failed to parse formSchema for node ${node.id}:`, error);
+      }
+    }
+
     for (const userId of assignees) {
       logger.info(`Creating task for userId: ${userId} (type: ${typeof userId})`);
       const task = await Task.create({
@@ -309,7 +323,7 @@ class WorkflowEngine {
         taskData: {
           nodeId: node.id,
           nodeName: node.data?.label || 'Formulaire',
-          formFields: config.formFields || [],
+          formFields: formFields,
           instructions: config.instructions || ''
         }
       });

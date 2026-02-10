@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -26,8 +26,20 @@ api.interceptors.request.use(
 
 // Response interceptor for handling errors
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    console.log('=== API Response Success ===');
+    console.log('URL:', response.config.url);
+    console.log('Status:', response.status);
+    console.log('Data:', response.data);
+    return response.data;
+  },
   (error) => {
+    console.log('=== API Response Error ===');
+    console.log('Error:', error);
+    console.log('Response:', error.response);
+    console.log('Status:', error.response?.status);
+    console.log('Data:', error.response?.data);
+    
     if (error.response?.status === 401) {
       // Handle unauthorized access
       localStorage.removeItem('token');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   HomeIcon,
@@ -101,9 +101,9 @@ export default function Layout({ children }) {
                 const Icon = item.icon;
                 const isActive = isNavItemActive(item.href);
                 return (
-                  <Link
+                  <a
                     key={item.name}
-                    to={item.href}
+                    href={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                       isActive
                         ? 'bg-indigo-50 text-indigo-600'
@@ -113,7 +113,7 @@ export default function Layout({ children }) {
                   >
                     <Icon className="mr-3 h-6 w-6" />
                     {item.name}
-                  </Link>
+                  </a>
                 );
               })}
             </nav>
@@ -132,9 +132,9 @@ export default function Layout({ children }) {
               const Icon = item.icon;
               const isActive = isNavItemActive(item.href);
               return (
-                <Link
+                <a
                   key={item.name}
-                  to={item.href}
+                  href={item.href}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     isActive
                       ? 'bg-indigo-50 text-indigo-600'
@@ -143,7 +143,7 @@ export default function Layout({ children }) {
                 >
                   <Icon className="mr-3 h-6 w-6" />
                   {item.name}
-                </Link>
+                </a>
               );
             })}
           </nav>
@@ -191,14 +191,14 @@ export default function Layout({ children }) {
                 {profileMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1">
-                      <Link
-                        to="/profile"
+                      <a
+                        href="/profile"
                         onClick={() => setProfileMenuOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                       >
                         <UserCircleIcon className="h-4 w-4" />
                         Mon profil
-                      </Link>
+                      </a>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"

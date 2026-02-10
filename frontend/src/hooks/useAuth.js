@@ -8,6 +8,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: (data) => {
+      console.log('=== Login Success ===');
+      console.log('Data received:', data);
       const { user, token, refreshToken } = data.data;
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
@@ -17,6 +19,8 @@ export const useLogin = () => {
       });
     },
     onError: (error) => {
+      console.log('=== Login Error ===');
+      console.log('Error:', error);
       toast.error(error.error || 'Échec de la connexion');
     },
   });

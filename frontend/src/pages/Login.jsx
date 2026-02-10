@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, EnvelopeIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ export default function Login() {
     email: '',
     password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = location.state?.from?.pathname || '/';
 
@@ -25,7 +26,14 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log('=== Tentative de connexion ===');
+    console.log('Email:', formData.email);
+    console.log('API URL:', import.meta.env.VITE_API_URL || '/api');
+    
     const result = await login(formData);
+    
+    console.log('=== Résultat de connexion ===');
+    console.log('Result:', result);
 
     if (result.success) {
       navigate(from, { replace: true });
@@ -84,14 +92,25 @@ export default function Login() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Mot de passe"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
               </div>
             </div>
           </div>
